@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Together",
+    "slug": "Together",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/Together.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/Splash.jpeg"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/Splash.jpeg",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.aditya2955.Together"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "918b502b-99f8-4b32-b277-49a30a1e179e"
+      }
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
