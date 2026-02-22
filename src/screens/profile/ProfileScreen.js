@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../navigation/RootNavigator";
 
 const TEAL = "#1a9f8f";
@@ -31,10 +32,14 @@ const cardShadow = Platform.select({
 });
 
 const ProfileScreen = () => {
+  const navigation = useNavigation();
   const { logout } = useAuth();
 
   const handleSettingsPress = (item) => {
     if (item.label === "Log Out") logout();
+    else if (item.label === "Notifications") navigation.navigate("Notifications");
+    else if (item.label === "Security") navigation.navigate("Security");
+    else if (item.label === "Help") navigation.navigate("Help");
   };
 
   return (
@@ -58,7 +63,11 @@ const ProfileScreen = () => {
             </View>
             <Text style={styles.userName}>John Sanlaen</Text>
             <Text style={styles.userEmail}>johnleen@email.com</Text>
-            <TouchableOpacity style={styles.editBtn} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.editBtn}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate("EditProfile")}
+            >
               <Text style={styles.editBtnText}>Edit Profile</Text>
             </TouchableOpacity>
           </View>

@@ -6,7 +6,7 @@ import HomeScreen from "../screens/home/HomeScreen";
 import GroupsStack from "./GroupsStack";
 import FriendsScreen from "../screens/friends/FriendsScreen";
 import ActivityScreen from "../screens/activity/ActivityScreen";
-import ProfileScreen from "../screens/profile/ProfileScreen";
+import ProfileStack from "./ProfileStack";
 
 const Tab = createBottomTabNavigator();
 
@@ -39,7 +39,7 @@ export default function BottomTabs() {
       <Tab.Screen name="Groups" component={GroupsStack} />
       <Tab.Screen name="Friends" component={FriendsScreen} />
       <Tab.Screen name="Activity" component={ActivityScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Profile" component={ProfileStack} />
     </Tab.Navigator>
     </SafeAreaView>
   );

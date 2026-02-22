@@ -12,13 +12,31 @@ import { Ionicons } from "@expo/vector-icons";
 import Logo from "../../../assets/Landing.png";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../navigation/RootNavigator";
+import { Audio } from "expo-av";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
   const { login } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require("../../../assets/faaa_1sec.mp3"),
+      );
+
+      await sound.playAsync();
+
+     
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          sound.unloadAsync();
+        }
+      });
+    } catch (error) {
+      console.log("Sound error:", error);
+    }
+
     login();
   };
 
