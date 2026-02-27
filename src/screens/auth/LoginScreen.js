@@ -5,6 +5,7 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,32 +13,48 @@ import { Ionicons } from "@expo/vector-icons";
 import Logo from "../../../assets/Landing.png";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../navigation/RootNavigator";
-import { Audio } from "expo-av";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../../firbase";
+import { showSuccessToast, showErrorToast } from "../../utils/toastWithSound";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
   const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        require("../../../assets/faaa_1sec.mp3"),
-      );
+    const trimmedEmail = email.trim().toLowerCase();
 
-      await sound.playAsync();
-
-     
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
-          sound.unloadAsync();
-        }
-      });
-    } catch (error) {
-      console.log("Sound error:", error);
+    if (!trimmedEmail) {
+      showErrorToast("Please enter your email.");
+      return;
+    }
+    if (!password) {
+      showErrorToast("Please enter a password.");
+      return;
     }
 
-    login();
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, trimmedEmail, password);
+      showSuccessToast("Logged in successfully 🎉");
+      login();
+    } catch (err) {
+      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+        showErrorToast("Incorrect email or password.");
+      } else if (err.code === "auth/user-not-found") {
+        showErrorToast("No account found with this email.");
+      } else if (err.code === "auth/invalid-email") {
+        showErrorToast("Please enter a valid email address.");
+      } else {
+        showErrorToast(err.message || "Login failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,6 +74,11 @@ const LoginScreen = () => {
               style={styles.input}
               placeholder=" Enter Your Email"
               placeholderTextColor="#777"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!loading}
             />
 
             <View style={styles.passwordContainer}>
@@ -64,7 +86,10 @@ const LoginScreen = () => {
                 style={styles.passwordInput}
                 placeholder="Password"
                 placeholderTextColor="#777"
+                value={password}
+                onChangeText={setPassword}
                 secureTextEntry={!passwordVisible}
+                editable={!loading}
               />
               <TouchableOpacity
                 onPress={() => setPasswordVisible(!passwordVisible)}
@@ -77,8 +102,16 @@ const LoginScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-              <Text style={styles.buttonText}>Log In</Text>
+            <TouchableOpacity
+              style={[styles.button, loading && { opacity: 0.8 }]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Log In</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity>

@@ -6,6 +6,7 @@ import {
   Poppins_600SemiBold,
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
+import ToastManager from "toastify-react-native";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -18,5 +19,10 @@ export default function App() {
     return null;
   }
 
-  return <RootNavigator />;
+  return (
+    <>
+      <RootNavigator />
+      <ToastManager />
+    </>
+  );
 }
