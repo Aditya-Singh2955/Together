@@ -1,5 +1,7 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
 import { NavigationContainer } from "@react-navigation/native";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../firbase";
 
 import AuthStack from "./AuthStack";
 import BottomTabs from "./BottomTabs";
@@ -12,18 +14,20 @@ export function useAuth() {
 
 export default function RootNavigator() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const login = () => {
-    console.log("Login called - changing state to true");
-    setIsLoggedIn(true);
-  };
-  
-  const logout = () => {
-    console.log("Logout called - changing state to false");
-    setIsLoggedIn(false);
-  };
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
-  console.log("RootNavigator - isLoggedIn:", isLoggedIn);
+  const login = () => setIsLoggedIn(true);
+  const logout = () => setIsLoggedIn(false);
+
+  if (loading) return null;
 
   return (
     <AuthContext.Provider value={{ isLoggedIn, login, logout }}>

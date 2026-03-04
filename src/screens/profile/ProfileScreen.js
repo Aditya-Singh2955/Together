@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../../navigation/RootNavigator";
+import { auth } from "../../../firbase";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -35,12 +38,48 @@ const ProfileScreen = () => {
   const navigation = useNavigation();
   const { logout } = useAuth();
 
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchProfile = async () => {
+        setLoading(true);
+        try {
+          const user = auth.currentUser;
+          if (!user) return;
+
+          const db = getFirestore();
+          const docRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            setProfile(docSnap.data());
+          } else {
+            setProfile({
+              name: user.displayName || "User",
+              email: user.email || "",
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching profile:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchProfile();
+    }, [])
+  );
+
   const handleSettingsPress = (item) => {
     if (item.label === "Log Out") logout();
     else if (item.label === "Notifications") navigation.navigate("Notifications");
     else if (item.label === "Security") navigation.navigate("Security");
     else if (item.label === "Help") navigation.navigate("Help");
   };
+
+  const avatarLetter = profile?.name ? profile.name.charAt(0).toUpperCase() : "?";
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -58,18 +97,24 @@ const ProfileScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.profileCard, cardShadow]}>
-            <View style={styles.avatarLarge}>
-              <Text style={styles.avatarLetter}>J</Text>
-            </View>
-            <Text style={styles.userName}>John Sanlaen</Text>
-            <Text style={styles.userEmail}>johnleen@email.com</Text>
-            <TouchableOpacity
-              style={styles.editBtn}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate("EditProfile")}
-            >
-              <Text style={styles.editBtnText}>Edit Profile</Text>
-            </TouchableOpacity>
+            {loading ? (
+              <ActivityIndicator size="large" color={TEAL} style={{ marginVertical: 32 }} />
+            ) : (
+              <>
+                <View style={styles.avatarLarge}>
+                  <Text style={styles.avatarLetter}>{avatarLetter}</Text>
+                </View>
+                <Text style={styles.userName}>{profile?.name || "User"}</Text>
+                <Text style={styles.userEmail}>{profile?.email || ""}</Text>
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate("EditProfile")}
+                >
+                  <Text style={styles.editBtnText}>Edit Profile</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <Text style={styles.sectionTitle}>Settings</Text>

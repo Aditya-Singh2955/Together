@@ -15,6 +15,7 @@ import Logo from "../../../assets/Landing.png";
 import { useNavigation } from "@react-navigation/native";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../firbase";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 import { useAuth } from "../../navigation/RootNavigator";
 import { showSuccessToast, showErrorToast } from "../../utils/toastWithSound";
 
@@ -55,7 +56,17 @@ const SignupScreen = () => {
   
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+      const user = userCredential.user;
+
+      // Save name and email to Firestore
+      const db = getFirestore();
+      await setDoc(doc(db, "users", user.uid), {
+        name: trimmedName,
+        email: trimmedEmail,
+        createdAt: new Date().toISOString(),
+      });
+
       showSuccessToast("Account created successfully 🎉");
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {

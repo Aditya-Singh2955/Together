@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,14 @@ import {
   ScrollView,
   TextInput,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { auth } from "../../../firbase";
+import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
+import { showSuccessToast, showErrorToast } from "../../utils/toastWithSound";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -26,9 +30,67 @@ const cardShadow = Platform.select({
 
 const EditProfileScreen = () => {
   const navigation = useNavigation();
-  const [name, setName] = useState("John Sanlaen");
-  const [email, setEmail] = useState("johnleen@email.com");
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Load current profile data from Firestore
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const db = getFirestore();
+        const docSnap = await getDoc(doc(db, "users", user.uid));
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setName(data.name || "");
+          setEmail(data.email || user.email || "");
+          setPhone(data.phone || "");
+        } else {
+          setEmail(user.email || "");
+        }
+      } catch (error) {
+        showErrorToast("Failed to load profile.");
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // Save updated data back to Firestore
+  const handleSave = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      showErrorToast("Name cannot be empty.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const user = auth.currentUser;
+      const db = getFirestore();
+      await updateDoc(doc(db, "users", user.uid), {
+        name: trimmedName,
+        phone: phone.trim(),
+      });
+      showSuccessToast("Profile updated successfully!");
+      navigation.goBack();
+    } catch (error) {
+      showErrorToast("Failed to save. Please try again.");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -41,55 +103,73 @@ const EditProfileScreen = () => {
           <View style={styles.headerPlaceholder} />
         </View>
 
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.avatarWrap}>
-            <View style={styles.avatarLarge}>
-              <Text style={styles.avatarLetter}>{name.charAt(0) || "?"}</Text>
+        {loading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={TEAL} />
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.avatarWrap}>
+              <View style={styles.avatarLarge}>
+                <Text style={styles.avatarLetter}>{name.charAt(0).toUpperCase() || "?"}</Text>
+              </View>
             </View>
-            <TouchableOpacity style={styles.changePhotoBtn} activeOpacity={0.8}>
-              <Text style={styles.changePhotoText}>Change Photo</Text>
+
+            <View style={[styles.card, cardShadow]}>
+              <Text style={[styles.label, styles.labelFirst]}>Full Name</Text>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder="Your name"
+                placeholderTextColor={TEXT_SECONDARY}
+                autoCapitalize="words"
+                editable={!saving}
+              />
+
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={[styles.input, styles.inputDisabled]}
+                value={email}
+                placeholder="your@email.com"
+                placeholderTextColor={TEXT_SECONDARY}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={false}
+              />
+              <Text style={styles.hint}>Email cannot be changed here.</Text>
+
+              <Text style={styles.label}>Phone (optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="+91 98765 43210"
+                placeholderTextColor={TEXT_SECONDARY}
+                keyboardType="phone-pad"
+                editable={!saving}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveBtn, cardShadow, saving && { opacity: 0.7 }]}
+              activeOpacity={0.85}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveBtnText}>Save Changes</Text>
+              )}
             </TouchableOpacity>
-          </View>
-
-          <View style={[styles.card, cardShadow]}>
-            <Text style={[styles.label, styles.labelFirst]}>Full Name</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Your name"
-              placeholderTextColor={TEXT_SECONDARY}
-            />
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="your@email.com"
-              placeholderTextColor={TEXT_SECONDARY}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <Text style={styles.label}>Phone (optional)</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+1 234 567 8900"
-              placeholderTextColor={TEXT_SECONDARY}
-              keyboardType="phone-pad"
-            />
-          </View>
-
-          <TouchableOpacity style={[styles.saveBtn, cardShadow]} activeOpacity={0.85}>
-            <Text style={styles.saveBtnText}>Save Changes</Text>
-          </TouchableOpacity>
-        </ScrollView>
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -111,6 +191,7 @@ const styles = StyleSheet.create({
   backBtn: { padding: 8 },
   headerTitle: { fontSize: 18, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY },
   headerPlaceholder: { width: 40 },
+  loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 32 },
   avatarWrap: { alignItems: "center", marginBottom: 24 },
@@ -121,11 +202,8 @@ const styles = StyleSheet.create({
     backgroundColor: TEAL_LIGHT,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
   avatarLetter: { fontSize: 38, fontFamily: "Poppins_600SemiBold", color: "#fff" },
-  changePhotoBtn: { paddingVertical: 8 },
-  changePhotoText: { fontSize: 15, fontFamily: "Poppins_600SemiBold", color: TEAL },
   card: {
     backgroundColor: CARD_BG,
     borderRadius: 16,
@@ -149,6 +227,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins_400Regular",
     color: TEXT_PRIMARY,
+  },
+  inputDisabled: {
+    backgroundColor: "#f3f4f6",
+    color: TEXT_SECONDARY,
+  },
+  hint: {
+    fontSize: 12,
+    fontFamily: "Poppins_400Regular",
+    color: TEXT_SECONDARY,
+    marginTop: 6,
   },
   saveBtn: {
     backgroundColor: TEAL,
