@@ -7,12 +7,14 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { auth } from "../../../firbase";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
+import { playOuchSound } from "../../utils/toastWithSound";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -22,8 +24,13 @@ const TEXT_PRIMARY = "#1a1a1a";
 const TEXT_SECONDARY = "#6b7280";
 
 const cardShadow = Platform.select({
-  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
-  android: { elevation: 3 },
+  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 8 },
+  android: { elevation: 2 },
+});
+
+const buttonShadow = Platform.select({
+  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 12 },
+  android: { elevation: 4 },
 });
 
 const ICON_OPTIONS = [
@@ -65,7 +72,13 @@ const GroupsScreen = () => {
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Together</Text>
+          <TouchableOpacity activeOpacity={0.8} onPress={playOuchSound}>
+            <Image
+              source={require("../../../assets/header.png")}
+              style={{ width: 140, height: 44 }}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
           <Ionicons name="people-outline" size={28} color={TEAL} />
         </View>
 
@@ -75,48 +88,50 @@ const GroupsScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           <TouchableOpacity
-            style={[styles.joinBtn, cardShadow]}
+            style={[styles.joinBtn, buttonShadow]}
             onPress={() => navigation.navigate("JoinGroup")}
             activeOpacity={0.85}
           >
-            <Ionicons name="link-outline" size={20} color={TEAL} style={styles.joinBtnIcon} />
-            <Text style={styles.joinBtnText}>Join a Group</Text>
+            <Ionicons name="link-outline" size={20} color="#0f766e" style={styles.joinBtnIcon} />
+            <Text style={styles.joinBtnText}>JOIN WITH CODE</Text>
           </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>Your Groups</Text>
+          <View style={styles.sectionHeader}>
+             <Text style={styles.sectionTitle}>YOUR GROUPS</Text>
+          </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color={TEAL} style={{ marginTop: 32 }} />
+            <ActivityIndicator size="large" color="#14b8a6" style={{ marginTop: 32 }} />
           ) : groups.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={56} color={TEAL_LIGHT} />
+            <View style={[styles.groupCard, { padding: 40, alignItems: "center" }]}>
+              <Ionicons name="people-outline" size={56} color="#e2e8f0" />
               <Text style={styles.emptyText}>No groups yet.</Text>
               <Text style={styles.emptySubText}>Create one or join with an invite code!</Text>
             </View>
           ) : (
-            <View style={[styles.listCard, cardShadow]}>
+            <View style={styles.listCard}>
               {groups.map((item, index) => (
                 <TouchableOpacity
                   key={item.id}
-                  style={[styles.row, index === groups.length - 1 && styles.rowLast]}
-                  activeOpacity={0.7}
+                  style={styles.groupCard}
+                  activeOpacity={0.85}
                   onPress={() => navigation.navigate("GroupDetail", { groupId: item.id, groupName: item.name })}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: TEAL_LIGHT }]}>
-                    <Ionicons name={item.icon || "people-outline"} size={22} color="#fff" />
+                  <View style={styles.iconCircle}>
+                    <Ionicons name={item.icon || "people-outline"} size={22} color="#0f766e" />
                   </View>
                   <View style={styles.rowInfo}>
-                    <Text style={styles.rowLabel}>{item.name}</Text>
+                    <Text style={styles.rowLabel} numberOfLines={1}>{item.name}</Text>
                     <Text style={styles.rowSub}>{item.members?.length || 1} members</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={TEXT_SECONDARY} />
+                  <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
                 </TouchableOpacity>
               ))}
             </View>
           )}
 
           <TouchableOpacity
-            style={[styles.primaryBtn, cardShadow]}
+            style={[styles.primaryBtn, buttonShadow]}
             activeOpacity={0.85}
             onPress={() => navigation.navigate("CreateGroup")}
           >
@@ -137,7 +152,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
@@ -149,46 +164,52 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: CARD_BG,
+    backgroundColor: "#ccfbf1",
     paddingVertical: 16,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: TEAL_LIGHT,
-    marginBottom: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#99f6e4",
+    marginBottom: 32,
   },
   joinBtnIcon: { marginRight: 8 },
-  joinBtnText: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: TEAL },
+  joinBtnText: { fontSize: 14, fontFamily: "Poppins_700Bold", color: "#0f766e", letterSpacing: 1 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 13,
     fontFamily: "Poppins_600SemiBold",
-    color: TEXT_PRIMARY,
-    marginBottom: 14,
+    color: "#64748b",
+    letterSpacing: 1.5,
   },
   emptyState: { alignItems: "center", marginTop: 40 },
   emptyText: { fontSize: 17, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY, marginTop: 16 },
-  emptySubText: { fontSize: 13, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY, marginTop: 6, textAlign: "center" },
+  emptySubText: { fontSize: 13, fontFamily: "Poppins_400Regular", color: "#64748b", marginTop: 6, textAlign: "center" },
   listCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
-    overflow: "hidden",
+    gap: 12,
     marginBottom: 24,
   },
-  row: {
+  groupCard: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    backgroundColor: "#fff",
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    ...cardShadow,
   },
-  rowLast: { borderBottomWidth: 0 },
-  rowInfo: { flex: 1 },
-  rowLabel: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY },
-  rowSub: { fontSize: 12, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY, marginTop: 2 },
+  rowInfo: { flex: 1, marginRight: 10 },
+  rowLabel: { fontSize: 18, fontFamily: "Poppins_700Bold", color: "#0f172a", letterSpacing: -0.2 },
+  rowSub: { fontSize: 13, fontFamily: "Poppins_400Regular", color: "#64748b", marginTop: 2 },
   iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#ccfbf1",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
@@ -197,13 +218,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: TEAL,
+    backgroundColor: "#0f172a",
     paddingVertical: 18,
-    borderRadius: 14,
+    borderRadius: 16,
     marginTop: 8,
   },
   primaryBtnIcon: { marginRight: 8 },
-  primaryBtnText: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: "#fff" },
+  primaryBtnText: { fontSize: 16, fontFamily: "Poppins_700Bold", color: "#fff" },
 });
 
 export default GroupsScreen;

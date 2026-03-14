@@ -8,20 +8,21 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { auth } from "../../../firbase";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
-import { showSuccessToast, showErrorToast } from "../../utils/toastWithSound";
+import { showSuccessToast, showErrorToast, playOuchSound } from "../../utils/toastWithSound";
 
-const TEAL = "#1a9f8f";
-const TEAL_LIGHT = "#2bb7a8";
-const BG = "#f5f7fa";
+const TEAL = "#0f172a";
+const TEAL_LIGHT = "#1e293b";
+const BG = "#f8fafc";
 const CARD_BG = "#fff";
-const TEXT_PRIMARY = "#1a1a1a";
-const TEXT_SECONDARY = "#6b7280";
+const TEXT_PRIMARY = "#0f172a";
+const TEXT_SECONDARY = "#64748b";
 
 const cardShadow = Platform.select({
   ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
@@ -85,7 +86,13 @@ const AddExpenseScreen = () => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Expense</Text>
+          <TouchableOpacity activeOpacity={0.8} onPress={playOuchSound} style={styles.headerTitleContainer}>
+            <Image
+              source={require("../../../assets/header.png")}
+              style={{ width: 140, height: 44 }}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
           <View style={{ width: 40 }} />
         </View>
 
@@ -165,6 +172,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14, backgroundColor: CARD_BG,
     borderBottomWidth: 1, borderBottomColor: "#eee" },
   backBtn: { padding: 8 },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
   headerTitle: { fontSize: 18, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
@@ -182,16 +193,16 @@ const styles = StyleSheet.create({
   memberName: { flex: 1, fontSize: 15, fontFamily: "Poppins_400Regular", color: TEXT_PRIMARY },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: "#d1d5db",
     alignItems: "center", justifyContent: "center" },
-  radioSelected: { borderColor: TEAL, backgroundColor: "#e6faf7" },
+  radioSelected: { borderColor: TEAL, backgroundColor: "#f8fafc" },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: TEAL },
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: "#d1d5db",
     alignItems: "center", justifyContent: "center" },
   checkboxSelected: { borderColor: TEAL, backgroundColor: TEAL },
   splitPreview: { flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: "#e6faf7", borderRadius: 12, padding: 16, marginBottom: 20 },
+    backgroundColor: "#f8fafc", borderRadius: 12, padding: 16, marginBottom: 20 },
   splitPreviewText: { fontSize: 14, fontFamily: "Poppins_600SemiBold", color: TEAL },
   saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center",
-    backgroundColor: TEAL, paddingVertical: 18, borderRadius: 14 },
+    backgroundColor: TEAL, paddingVertical: 18, borderRadius: 16, marginTop: 10 },
   saveBtnText: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: "#fff" },
 });
 

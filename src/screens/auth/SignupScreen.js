@@ -177,7 +177,7 @@ const SignupScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#fff" },
+  safeArea: { flex: 1, backgroundColor: "#f8fafc" },
   scroll: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: 24 },
   LogoSection: { alignItems: "center", paddingTop: 16 },
@@ -187,38 +187,43 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontFamily: "Poppins_600SemiBold",
-    color: "#3f3333",
+    color: "#0f172a",
+    letterSpacing: -0.5,
   },
   ContentSection: { marginTop: 8 },
   input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 14,
-    marginBottom: 15,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 16,
     fontSize: 16,
     fontFamily: "Poppins_600SemiBold",
+    color: "#0f172a",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    marginBottom: 15,
+    borderColor: "#e2e8f0",
   },
   passwordInput: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 16,
     fontSize: 16,
     fontFamily: "Poppins_600SemiBold",
+    color: "#0f172a",
   },
   button: {
-    backgroundColor: "#36BFA6",
-    paddingVertical: 15,
-    borderRadius: 12,
+    backgroundColor: "#0f172a", // dark indigo
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: "center",
     marginTop: 10,
   },
@@ -226,12 +231,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "600",
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Poppins_700Bold",
   },
   signupContainer: { alignItems: "center", paddingVertical: 24, paddingBottom: 32 },
-  signupText: { fontSize: 15, color: "#444", fontFamily: "Poppins_400Regular" },
-  signupLink: { color: "#36BFA6", fontFamily: "Poppins_600SemiBold" },
+  signupText: { fontSize: 14, color: "#64748b", fontFamily: "Poppins_400Regular" },
+  signupLink: { color: "#0f172a", fontFamily: "Poppins_600SemiBold" },
 });
 
 export default SignupScreen;

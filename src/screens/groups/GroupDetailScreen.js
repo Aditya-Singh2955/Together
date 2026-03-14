@@ -36,9 +36,42 @@ const TEXT_PRIMARY = "#1a1a1a";
 const TEXT_SECONDARY = "#6b7280";
 
 const cardShadow = Platform.select({
-  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
-  android: { elevation: 3 },
+  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 8 },
+  android: { elevation: 2 },
 });
+
+const buttonShadow = Platform.select({
+  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 12 },
+  android: { elevation: 4 },
+});
+
+const AVATAR_COLORS = [
+  "#38bdf8", // light blue
+  "#fbbf24", // amber
+  "#f472b6", // pink
+  "#c084fc", // purple
+  "#4ade80", // green
+  "#f87171", // red
+];
+
+const getColorFromName = (name) => {
+  if (!name) return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+};
+
+const Avatar = ({ name }) => {
+  const bgColor = getColorFromName(name);
+  return (
+    <View style={[styles.avatar, { backgroundColor: bgColor }]}>
+      <Text style={[styles.avatarText, { color: "#fff" }]}>{name ? name.charAt(0).toUpperCase() : "?"}</Text>
+    </View>
+  );
+};
 
 const GroupDetailScreen = () => {
   const navigation = useNavigation();
@@ -89,7 +122,11 @@ const GroupDetailScreen = () => {
     }
   }, [groupId]);
 
-  useFocusEffect(loadGroupData);
+  useFocusEffect(
+    useCallback(() => {
+      loadGroupData();
+    }, [loadGroupData])
+  );
 
   // Load friends not already in the group
   const openAddMember = async () => {
@@ -133,7 +170,41 @@ const GroupDetailScreen = () => {
     }
   };
 
-  const totalExpenses = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  // 1. Group Total: Sum ALL expenses EXCEPT settlements
+  const totalExpenses = expenses
+    .filter((e) => !e.isSettlement && e.title !== "Settle Up")
+    .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+
+  // 2. Individual Member Balances
+  // Positive = Owed money back
+  // Negative = Owes someone else
+  const memberBalances = {};
+  
+  // Initialize balances to 0
+  members.forEach(m => {
+    memberBalances[m.uid] = 0;
+  });
+
+  // Calculate debts based on every expense
+  expenses.forEach(exp => {
+    const amt = parseFloat(exp.amount) || 0;
+    const payerUid = exp.paidBy;
+    const splitAmong = exp.splitAmong || [];
+    const splitCount = splitAmong.length || 1;
+    const costPerPerson = amt / splitCount;
+
+    // The person who paid getting credited the FULL amount to their balance:
+    if (memberBalances[payerUid] !== undefined) {
+      memberBalances[payerUid] += amt;
+    }
+
+    // Every person in the split having their share subtracted from their balance:
+    splitAmong.forEach(splitUid => {
+      if (memberBalances[splitUid] !== undefined) {
+        memberBalances[splitUid] -= costPerPerson;
+      }
+    });
+  });
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -163,61 +234,78 @@ const GroupDetailScreen = () => {
               <Text style={styles.inviteHint}>Share this to invite others</Text>
             </View>
 
-            {/* Total */}
-            <View style={[styles.totalCard, cardShadow]}>
-              <Text style={styles.totalLabel}>Total Expenses</Text>
-              <Text style={styles.totalAmount}>₹{totalExpenses.toFixed(2)}</Text>
+            {/* Group Total Summary Card */}
+            <View style={[styles.splitCard, cardShadow]}>
+              <View style={styles.splitRow}>
+                <View style={styles.splitItem}>
+                   <Text style={styles.splitLabel}>Group Spending</Text>
+                   <Text style={styles.splitValueHighlighted}>₹{totalExpenses.toFixed(2)}</Text>
+                </View>
+              </View>
+              <View style={styles.splitFooter}>
+                <Ionicons name="information-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.splitFooterText}>Total of all expenses (excluding settlement payments)</Text>
+              </View>
             </View>
 
-            {/* Members */}
             <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>Members ({members.length})</Text>
+              <Text style={styles.sectionTitle}>MEMBERS ({members.length})</Text>
               <TouchableOpacity onPress={openAddMember} style={styles.addMemberBtn} activeOpacity={0.7}>
-                <Ionicons name="person-add-outline" size={18} color={TEAL} />
+                <Ionicons name="person-add-outline" size={18} color="#0f766e" />
                 <Text style={styles.addMemberText}>Add</Text>
               </TouchableOpacity>
             </View>
-            <View style={[styles.card, cardShadow]}>
-              {members.map((m, index) => (
-                <View
-                  key={m.uid}
-                  style={[styles.memberRow, index === members.length - 1 && styles.rowLast]}
-                >
-                  <View style={styles.memberAvatar}>
-                    <Text style={styles.memberAvatarText}>{m.name?.charAt(0).toUpperCase()}</Text>
+            <View style={styles.listCard}>
+              {members.map((m, index) => {
+                const bal = memberBalances[m.uid] || 0;
+                const isSettled = Math.abs(bal) < 0.01;
+                const getsBack = bal > 0.01;
+
+                return (
+                  <View key={m.uid} style={styles.itemCard}>
+                    <Avatar name={m.name} />
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName} numberOfLines={1}>
+                        {m.name}
+                        {m.uid === group?.createdBy ? "  👑" : ""}
+                        {m.uid === currentUser.uid ? "  (you)" : ""}
+                      </Text>
+                      <Text style={styles.itemMeta} numberOfLines={1}>{m.email}</Text>
+                    </View>
+                    
+                    <View style={[
+                      styles.netBadge,
+                      isSettled ? { backgroundColor: "#f3f4f6" } : getsBack ? { backgroundColor: "#ccfbf1" } : { backgroundColor: "#fee2e2" }
+                    ]}>
+                      <Text style={[
+                        styles.netBadgeText,
+                        isSettled ? { color: "#64748b" } : getsBack ? { color: "#0f766e" } : { color: "#ef4444" }
+                      ]}>
+                        {isSettled ? "Settled" : getsBack ? `Gets ₹${Math.abs(bal).toFixed(2)}` : `Owes ₹${Math.abs(bal).toFixed(2)}`}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.memberInfo}>
-                    <Text style={styles.memberName}>
-                      {m.name}
-                      {m.uid === group?.createdBy ? "  👑" : ""}
-                      {m.uid === currentUser.uid ? "  (you)" : ""}
-                    </Text>
-                    <Text style={styles.memberEmail}>{m.email}</Text>
-                  </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
 
             {/* Expenses */}
-            <Text style={styles.sectionTitle}>Expenses</Text>
+            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>EXPENSES</Text>
             {expenses.length === 0 ? (
-              <View style={styles.emptyExpenses}>
-                <Ionicons name="receipt-outline" size={48} color={TEAL_LIGHT} />
+              <View style={[styles.itemCard, { paddingVertical: 40, justifyContent: "center", alignItems: "center", flexDirection: "column" }]}>
+                <Ionicons name="receipt-outline" size={48} color="#e2e8f0" />
                 <Text style={styles.emptyText}>No expenses yet</Text>
               </View>
             ) : (
-              <View style={[styles.card, cardShadow]}>
+              <View style={styles.listCard}>
                 {expenses.map((exp, index) => (
-                  <View
-                    key={exp.id}
-                    style={[styles.expenseRow, index === expenses.length - 1 && styles.rowLast]}
-                  >
+                  <View key={exp.id} style={styles.itemCard}>
                     <View style={styles.expenseIcon}>
-                      <Ionicons name="receipt-outline" size={20} color={TEAL} />
+                      <Ionicons name="receipt-outline" size={20} color="#0f766e" />
                     </View>
-                    <View style={styles.expenseInfo}>
-                      <Text style={styles.expenseTitle}>{exp.title}</Text>
-                      <Text style={styles.expenseMeta}>Paid by {exp.paidByName}</Text>
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName}>{exp.title}</Text>
+                      <Text style={styles.itemMeta}>Paid by {exp.paidByName}</Text>
                     </View>
                     <Text style={styles.expenseAmount}>₹{parseFloat(exp.amount).toFixed(2)}</Text>
                   </View>
@@ -225,15 +313,25 @@ const GroupDetailScreen = () => {
               </View>
             )}
 
-            {/* Add Expense Button */}
-            <TouchableOpacity
-              style={[styles.addExpenseBtn, cardShadow]}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate("AddExpense", { groupId, members })}
-            >
-              <Ionicons name="add-circle-outline" size={22} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={styles.addExpenseBtnText}>Add Expense</Text>
-            </TouchableOpacity>
+            {/* Action Buttons */}
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.addExpenseBtn, buttonShadow]}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate("AddExpense", { groupId, members })}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={styles.actionBtnText}>Add Expense</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.settleBtn, buttonShadow]}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate("Settle", { groupId })}
+              >
+                <Text style={styles.settleBtnText}>💸 Settle Up</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         )}
 
@@ -313,15 +411,52 @@ const styles = StyleSheet.create({
   inviteCode: { fontSize: 28, fontFamily: "Poppins_700Bold", color: TEAL, letterSpacing: 8 },
   inviteHint: { fontSize: 12, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY },
 
-  totalCard: {
-    backgroundColor: TEAL,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
+  splitCard: {
+    backgroundColor: "#0f172a",
+    borderRadius: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#1e293b",
   },
-  totalLabel: { fontSize: 14, fontFamily: "Poppins_400Regular", color: "rgba(255,255,255,0.8)" },
-  totalAmount: { fontSize: 32, fontFamily: "Poppins_700Bold", color: "#fff", marginTop: 4 },
+  splitRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  splitItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  splitLabel: {
+    fontSize: 12,
+    fontFamily: "Poppins_600SemiBold",
+    color: "#94a3b8",
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  splitValueHighlighted: {
+    fontSize: 40,
+    fontFamily: "Poppins_700Bold",
+    color: "#ffffff",
+    lineHeight: 48,
+  },
+  splitFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
+    gap: 6,
+  },
+  splitFooterText: {
+    fontSize: 12,
+    fontFamily: "Poppins_400Regular",
+    color: "#94a3b8",
+  },
 
   sectionRow: {
     flexDirection: "row",
@@ -330,77 +465,85 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 13,
     fontFamily: "Poppins_600SemiBold",
-    color: TEXT_PRIMARY,
+    color: "#64748b",
+    letterSpacing: 1.5,
     marginBottom: 12,
   },
   addMemberBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
-  addMemberText: { fontSize: 14, fontFamily: "Poppins_600SemiBold", color: TEAL },
+  addMemberText: { fontSize: 13, fontFamily: "Poppins_700Bold", color: "#0f766e", letterSpacing: 0.5 },
 
-  card: {
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
-    overflow: "hidden",
+  listCard: {
+    gap: 12,
     marginBottom: 24,
   },
-  memberRow: {
+  itemCard: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  rowLast: { borderBottomWidth: 0 },
-  memberAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: TEAL_LIGHT,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  memberAvatarText: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: "#fff" },
-  memberInfo: { flex: 1 },
-  memberName: { fontSize: 15, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY },
-  memberEmail: { fontSize: 12, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY, marginTop: 2 },
-
-  expenseRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  expenseIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#e6faf7",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  expenseInfo: { flex: 1 },
-  expenseTitle: { fontSize: 15, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY },
-  expenseMeta: { fontSize: 12, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY, marginTop: 2 },
-  expenseAmount: { fontSize: 16, fontFamily: "Poppins_700Bold", color: TEXT_PRIMARY },
-
-  emptyExpenses: { alignItems: "center", paddingVertical: 32, gap: 8 },
-  emptyText: { fontSize: 15, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY },
-
-  addExpenseBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: TEAL,
+    backgroundColor: "#fff",
     paddingVertical: 18,
-    borderRadius: 14,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    ...cardShadow,
   },
-  addExpenseBtnText: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: "#fff" },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  avatarText: { fontSize: 18, fontFamily: "Poppins_700Bold" },
+  itemInfo: { flex: 1, marginRight: 12 },
+  itemName: { fontSize: 16, fontFamily: "Poppins_700Bold", color: "#0f172a", letterSpacing: -0.2 },
+  itemMeta: { fontSize: 13, fontFamily: "Poppins_400Regular", color: "#64748b", marginTop: 2 },
+  
+  netBadge: { 
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  netBadgeText: { fontSize: 14, fontFamily: "Poppins_700Bold", letterSpacing: 0.5 },
+
+  expenseIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#ccfbf1",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  expenseAmount: { fontSize: 18, fontFamily: "Poppins_700Bold", color: "#0f172a", letterSpacing: -0.5 },
+
+  emptyText: { fontSize: 15, fontFamily: "Poppins_400Regular", color: "#64748b", marginTop: 12 },
+
+  actionButtonsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 18,
+    borderRadius: 16,
+  },
+  addExpenseBtn: {
+    backgroundColor: "#0f172a",
+  },
+  actionBtnText: { fontSize: 15, fontFamily: "Poppins_700Bold", color: "#fff" },
+  settleBtn: {
+    backgroundColor: "#ccfbf1",
+    borderWidth: 1,
+    borderColor: "#99f6e4",
+  },
+  settleBtnText: { fontSize: 15, fontFamily: "Poppins_700Bold", color: "#0f766e" },
 
   // Modal
   modalOverlay: {

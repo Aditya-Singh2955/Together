@@ -36,6 +36,12 @@ const HelpScreen = () => {
   const handlePress = (item) => {
     if (item.label === "Contact Support") {
       Linking.openURL("mailto:support@together.app").catch(() => {});
+    } else if (item.label === "FAQ") {
+      navigation.navigate("FAQ");
+    } else if (item.label === "Privacy Policy") {
+      navigation.navigate("PrivacyPolicy");
+    } else if (item.label === "Terms of Service") {
+      navigation.navigate("TermsOfService");
     }
   };
 
@@ -79,20 +85,7 @@ const HelpScreen = () => {
             ))}
           </View>
 
-          <View style={[styles.contactCard, cardShadow]}>
-            <Text style={styles.contactTitle}>Need more help?</Text>
-            <Text style={styles.contactText}>
-              Our support team is available to assist you. Reach out anytime and we'll get back to you as soon as possible.
-            </Text>
-            <TouchableOpacity
-              style={styles.contactBtn}
-              onPress={() => Linking.openURL("mailto:support@together.app").catch(() => {})}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="mail-outline" size={20} color="#fff" style={styles.contactBtnIcon} />
-              <Text style={styles.contactBtnText}>Email Support</Text>
-            </TouchableOpacity>
-          </View>
+
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -143,29 +136,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowLabel: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY },
   rowDescription: { fontSize: 13, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY, marginTop: 2 },
-  contactCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
-    padding: 20,
-  },
-  contactTitle: { fontSize: 17, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY, marginBottom: 8 },
-  contactText: {
-    fontSize: 14,
-    fontFamily: "Poppins_400Regular",
-    color: TEXT_SECONDARY,
-    lineHeight: 22,
-    marginBottom: 18,
-  },
-  contactBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: TEAL,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  contactBtnIcon: { marginRight: 8 },
-  contactBtnText: { fontSize: 15, fontFamily: "Poppins_600SemiBold", color: "#fff" },
+
 });
 
 export default HelpScreen;

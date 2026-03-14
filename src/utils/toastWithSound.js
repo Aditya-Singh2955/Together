@@ -27,6 +27,18 @@ export function showErrorToast(message, position) {
   Toast.error(message, position);
 }
 
+export async function playOuchSound() {
+  try {
+    const { sound } = await Audio.Sound.createAsync(require("../../assets/Ouch.mp3"));
+    await sound.playAsync();
+    sound.setOnPlaybackStatusUpdate((status) => {
+      if (status.didJustFinish) {
+        sound.unloadAsync();
+      }
+    });
+  } catch (e) {
+  }
+}
 
 export const ToastSounds = {
   success: showSuccessToast,

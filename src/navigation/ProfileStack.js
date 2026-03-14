@@ -5,6 +5,9 @@ import EditProfileScreen from "../screens/profile/EditProfileScreen";
 import NotificationsScreen from "../screens/profile/NotificationsScreen";
 import SecurityScreen from "../screens/profile/SecurityScreen";
 import HelpScreen from "../screens/profile/HelpScreen";
+import FAQScreen from "../screens/profile/FAQScreen";
+import PrivacyPolicyScreen from "../screens/profile/PrivacyPolicyScreen";
+import TermsOfServiceScreen from "../screens/profile/TermsOfServiceScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -16,6 +19,9 @@ export default function ProfileStack() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Security" component={SecurityScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
+      <Stack.Screen name="FAQ" component={FAQScreen} />
+      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+      <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
     </Stack.Navigator>
   );
 }

@@ -16,22 +16,24 @@ export default function BottomTabs() {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarActiveTintColor: "#1a9f8f",
-          tabBarInactiveTintColor: "gray",
+          tabBarActiveTintColor: "#0f172a",
+          tabBarInactiveTintColor: "#94a3b8",
           tabBarStyle: {
             height: 60,
             paddingBottom: 5,
+            borderTopWidth: 1,
+            borderTopColor: "#e2e8f0",
           },
-          tabBarIcon: ({ color, size }) => {
+          tabBarIcon: ({ focused, color, size }) => {
             let iconName;
 
-            if (route.name === "Home") iconName = "home";
-            else if (route.name === "Groups") iconName = "people";
-            else if (route.name === "Friends") iconName = "person-add";
-            else if (route.name === "Activity") iconName = "pulse";
-            else if (route.name === "Profile") iconName = "person";
+            if (route.name === "Home") iconName = focused ? "home" : "home-outline";
+            else if (route.name === "Groups") iconName = focused ? "people" : "people-outline";
+            else if (route.name === "Friends") iconName = focused ? "person-add" : "person-add-outline";
+            else if (route.name === "Activity") iconName = focused ? "receipt" : "receipt-outline";
+            else if (route.name === "Profile") iconName = focused ? "person" : "person-outline";
 
-            return <Ionicons name={iconName} size={22} color={color} />;
+            return <Ionicons name={iconName} size={24} color={color} />;
           },
         })}
       >

@@ -132,7 +132,7 @@ const CreateGroupScreen = () => {
                   <Ionicons
                     name={icon.name}
                     size={26}
-                    color={selectedIcon === icon.name ? "#fff" : TEXT_PRIMARY}
+                    color={selectedIcon === icon.name ? "#fff" : "#64748b"}
                   />
                   <Text style={[
                     styles.iconLabel,
@@ -185,25 +185,29 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 },
   card: {
     backgroundColor: CARD_BG,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Poppins_600SemiBold",
-    color: TEXT_PRIMARY,
+    color: "#64748b",
     marginBottom: 10,
+    letterSpacing: 0.5,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
+    borderColor: "#e2e8f0",
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     fontSize: 16,
-    fontFamily: "Poppins_400Regular",
-    color: TEXT_PRIMARY,
+    fontFamily: "Poppins_600SemiBold",
+    color: "#0f172a",
+    backgroundColor: "#f8fafc",
   },
   iconGrid: {
     flexDirection: "row",
@@ -215,28 +219,31 @@ const styles = StyleSheet.create({
     width: "22%",
     alignItems: "center",
     paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "#f3f4f6",
+    borderRadius: 16,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
     gap: 4,
   },
   iconOptionSelected: {
-    backgroundColor: TEAL,
+    backgroundColor: "#14b8a6",
+    borderColor: "#14b8a6",
   },
   iconLabel: {
     fontSize: 10,
     fontFamily: "Poppins_600SemiBold",
-    color: TEXT_PRIMARY,
+    color: "#64748b",
   },
   iconLabelSelected: { color: "#fff" },
   createBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: TEAL,
+    backgroundColor: "#0f172a",
     paddingVertical: 18,
-    borderRadius: 14,
+    borderRadius: 16,
   },
-  createBtnText: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: "#fff" },
+  createBtnText: { fontSize: 16, fontFamily: "Poppins_700Bold", color: "#fff" },
 });
 
 export default CreateGroupScreen;

@@ -24,9 +24,33 @@ const TEXT_PRIMARY = "#1a1a1a";
 const TEXT_SECONDARY = "#6b7280";
 
 const cardShadow = Platform.select({
-  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
-  android: { elevation: 3 },
+  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 8 },
+  android: { elevation: 2 },
 });
+
+const buttonShadow = Platform.select({
+  ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 12 },
+  android: { elevation: 4 },
+});
+
+const AVATAR_COLORS = [
+  "#38bdf8", // light blue
+  "#fbbf24", // amber
+  "#f472b6", // pink
+  "#c084fc", // purple
+  "#4ade80", // green
+  "#f87171", // red
+];
+
+const getColorFromName = (name) => {
+  if (!name) return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+};
 
 const EditProfileScreen = () => {
   const navigation = useNavigation();
@@ -105,7 +129,7 @@ const EditProfileScreen = () => {
 
         {loading ? (
           <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color={TEAL} />
+            <ActivityIndicator size="large" color="#14b8a6" />
           </View>
         ) : (
           <ScrollView
@@ -115,8 +139,8 @@ const EditProfileScreen = () => {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.avatarWrap}>
-              <View style={styles.avatarLarge}>
-                <Text style={styles.avatarLetter}>{name.charAt(0).toUpperCase() || "?"}</Text>
+              <View style={[styles.avatarLarge, { backgroundColor: getColorFromName(name) }]}>
+                <Text style={styles.avatarLetter}>{name ? name.charAt(0).toUpperCase() : "?"}</Text>
               </View>
             </View>
 
@@ -157,7 +181,7 @@ const EditProfileScreen = () => {
             </View>
 
             <TouchableOpacity
-              style={[styles.saveBtn, cardShadow, saving && { opacity: 0.7 }]}
+              style={[styles.saveBtn, buttonShadow, saving && { opacity: 0.7 }]}
               activeOpacity={0.85}
               onPress={handleSave}
               disabled={saving}
@@ -199,52 +223,58 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: TEAL_LIGHT,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 4,
+    borderColor: "#1e293b",
   },
-  avatarLetter: { fontSize: 38, fontFamily: "Poppins_600SemiBold", color: "#fff" },
+  avatarLetter: { fontSize: 40, fontFamily: "Poppins_700Bold", color: "#fff" },
   card: {
     backgroundColor: CARD_BG,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Poppins_600SemiBold",
-    color: TEXT_PRIMARY,
+    color: "#64748b",
     marginBottom: 8,
-    marginTop: 12,
+    marginTop: 16,
+    letterSpacing: 0.5,
   },
   labelFirst: { marginTop: 0 },
   input: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
+    borderColor: "#e2e8f0",
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     fontSize: 16,
-    fontFamily: "Poppins_400Regular",
-    color: TEXT_PRIMARY,
+    fontFamily: "Poppins_600SemiBold",
+    color: "#0f172a",
+    backgroundColor: "#f8fafc",
   },
   inputDisabled: {
-    backgroundColor: "#f3f4f6",
-    color: TEXT_SECONDARY,
+    backgroundColor: "#f1f5f9",
+    color: "#94a3b8",
   },
   hint: {
     fontSize: 12,
     fontFamily: "Poppins_400Regular",
-    color: TEXT_SECONDARY,
+    color: "#94a3b8",
     marginTop: 6,
+    marginLeft: 4,
   },
   saveBtn: {
-    backgroundColor: TEAL,
-    paddingVertical: 16,
-    borderRadius: 14,
+    backgroundColor: "#0f172a",
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: "center",
   },
-  saveBtnText: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: "#fff" },
+  saveBtnText: { fontSize: 16, fontFamily: "Poppins_700Bold", color: "#fff" },
 });
 
 export default EditProfileScreen;

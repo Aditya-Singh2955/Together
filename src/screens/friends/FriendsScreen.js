@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   FlatList,
   Alert,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,7 +32,7 @@ import {
   startAt,
   endAt,
 } from "firebase/firestore";
-import { showSuccessToast, showErrorToast } from "../../utils/toastWithSound";
+import { showSuccessToast, showErrorToast, playOuchSound } from "../../utils/toastWithSound";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -50,13 +51,35 @@ const cardShadow = Platform.select({
   android: { elevation: 3 },
 });
 
-const Avatar = ({ name }) => (
-  <View style={styles.avatar}>
-    <Text style={styles.avatarText}>
-      {name ? name.charAt(0).toUpperCase() : "?"}
-    </Text>
-  </View>
-);
+const AVATAR_COLORS = [
+  "#38bdf8", // light blue
+  "#fbbf24", // amber
+  "#f472b6", // pink
+  "#c084fc", // purple
+  "#4ade80", // green
+  "#f87171", // red
+];
+
+const getColorFromName = (name) => {
+  if (!name) return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+};
+
+const Avatar = ({ name }) => {
+  const bgColor = getColorFromName(name);
+  return (
+    <View style={[styles.avatar, { backgroundColor: bgColor }]}>
+      <Text style={[styles.avatarText, { color: "#fff" }]}>
+        {name ? name.charAt(0).toUpperCase() : "?"}
+      </Text>
+    </View>
+  );
+};
 
 const FriendsScreen = () => {
   const [activeTab, setActiveTab] = useState("friends"); // "friends" | "search" | "requests"
@@ -300,7 +323,13 @@ const FriendsScreen = () => {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Together</Text>
+          <TouchableOpacity activeOpacity={0.8} onPress={playOuchSound}>
+            <Image
+              source={require("../../../assets/header.png")}
+              style={{ width: 140, height: 44 }}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
           <Ionicons name="people-outline" size={28} color={TEAL} />
         </View>
 
@@ -343,20 +372,17 @@ const FriendsScreen = () => {
             showsVerticalScrollIndicator={false}
           >
             {friendsLoading ? (
-              <ActivityIndicator size="large" color={TEAL} style={styles.loader} />
+              <ActivityIndicator size="large" color="#14b8a6" style={styles.loader} />
             ) : friends.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="people-outline" size={56} color={TEAL_LIGHT} />
+                <Ionicons name="people-outline" size={56} color="#e2e8f0" />
                 <Text style={styles.emptyText}>No friends yet.</Text>
                 <Text style={styles.emptySubText}>Search for people and add them!</Text>
               </View>
             ) : (
-              <View style={[styles.listCard, cardShadow]}>
+              <View style={styles.listCard}>
                 {friends.map((item, index) => (
-                  <View
-                    key={item.uid}
-                    style={[styles.row, index === friends.length - 1 && styles.rowLast]}
-                  >
+                  <View key={item.uid} style={[styles.row, cardShadow]}>
                     <Avatar name={item.name} />
                     <View style={styles.rowInfo}>
                       <Text style={styles.rowLabel}>{item.name}</Text>
@@ -367,7 +393,7 @@ const FriendsScreen = () => {
                       style={styles.removeBtn}
                       activeOpacity={0.7}
                     >
-                      <Ionicons name="person-remove-outline" size={18} color="#e53e3e" />
+                      <Ionicons name="person-remove-outline" size={20} color="#ef4444" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -439,7 +465,7 @@ const FriendsScreen = () => {
                           onPress={() => sendFriendRequest(item.uid)}
                           activeOpacity={0.8}
                         >
-                          <Ionicons name="person-add-outline" size={18} color="#fff" />
+                          <Text style={styles.addBtnText}>Add</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -458,23 +484,17 @@ const FriendsScreen = () => {
             showsVerticalScrollIndicator={false}
           >
             {requestsLoading ? (
-              <ActivityIndicator size="large" color={TEAL} style={styles.loader} />
+              <ActivityIndicator size="large" color="#14b8a6" style={styles.loader} />
             ) : incomingRequests.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="mail-outline" size={56} color={TEAL_LIGHT} />
+                <Ionicons name="mail-outline" size={56} color="#e2e8f0" />
                 <Text style={styles.emptyText}>No pending requests</Text>
                 <Text style={styles.emptySubText}>When someone adds you, it shows here.</Text>
               </View>
             ) : (
-              <View style={[styles.listCard, cardShadow]}>
+              <View style={styles.listCard}>
                 {incomingRequests.map((req, index) => (
-                  <View
-                    key={req.requestId}
-                    style={[
-                      styles.requestRow,
-                      index === incomingRequests.length - 1 && styles.rowLast,
-                    ]}
-                  >
+                  <View key={req.requestId} style={[styles.requestRow, cardShadow]}>
                     <Avatar name={req.senderName} />
                     <Text style={[styles.rowLabel, { flex: 1 }]}>{req.senderName}</Text>
                     <TouchableOpacity
@@ -489,7 +509,7 @@ const FriendsScreen = () => {
                       onPress={() => rejectRequest(req.requestId)}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="close" size={20} color={TEAL} />
+                      <Ionicons name="close" size={20} color="#ef4444" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -511,7 +531,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
@@ -525,37 +545,38 @@ const styles = StyleSheet.create({
   // Tabs
   tabBar: {
     flexDirection: "row",
-    backgroundColor: CARD_BG,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    backgroundColor: "#f8fafc",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
   },
   tab: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: "center",
+    borderRadius: 20,
+    backgroundColor: "#f1f5f9",
   },
   tabActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: TEAL,
+    backgroundColor: "#0f172a",
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Poppins_600SemiBold",
-    color: TEXT_SECONDARY,
+    color: "#64748b",
   },
   tabTextActive: {
-    color: TEAL,
+    color: "#fff",
   },
   badge: {
-    color: "#e53e3e",
-    fontFamily: "Poppins_600SemiBold",
+    color: "#ef4444",
+    fontFamily: "Poppins_700Bold",
   },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 100 },
   loader: { marginTop: 48 },
 
-  // Empty state
   emptyState: { alignItems: "center", marginTop: 60 },
   emptyText: {
     fontSize: 17,
@@ -566,62 +587,58 @@ const styles = StyleSheet.create({
   emptySubText: {
     fontSize: 13,
     fontFamily: "Poppins_400Regular",
-    color: TEXT_SECONDARY,
+    color: "#64748b",
     marginTop: 6,
     textAlign: "center",
   },
 
-  // Friends list
-  listCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
+  listCard: { gap: 12 },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    backgroundColor: "#fff",
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   requestRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    backgroundColor: "#fff",
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
     gap: 10,
   },
-  rowLast: { borderBottomWidth: 0 },
   rowInfo: { flex: 1 },
   rowLabel: {
-    fontSize: 15,
-    fontFamily: "Poppins_600SemiBold",
-    color: TEXT_PRIMARY,
+    fontSize: 16,
+    fontFamily: "Poppins_700Bold",
+    color: "#0f172a",
+    letterSpacing: -0.2,
   },
   rowSub: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: "Poppins_400Regular",
-    color: TEXT_SECONDARY,
+    color: "#64748b",
     marginTop: 2,
   },
 
-  // Avatar
   avatar: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: TEAL_LIGHT,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
   },
   avatarText: {
     fontSize: 18,
-    fontFamily: "Poppins_600SemiBold",
-    color: "#fff",
+    fontFamily: "Poppins_700Bold",
   },
 
   // Search
@@ -629,16 +646,18 @@ const styles = StyleSheet.create({
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: CARD_BG,
-    borderRadius: 14,
+    backgroundColor: "#f8fafc",
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    fontFamily: "Poppins_400Regular",
-    color: TEXT_PRIMARY,
+    fontFamily: "Poppins_600SemiBold",
+    color: "#0f172a",
     marginLeft: 12,
     paddingVertical: 0,
   },
@@ -654,15 +673,18 @@ const styles = StyleSheet.create({
 
   // Buttons
   addBtn: {
-    backgroundColor: TEAL,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: "#0f172a",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  addBtnText: {
+    color: "#fff",
+    fontFamily: "Poppins_700Bold",
+    fontSize: 13,
   },
   acceptBtn: {
-    backgroundColor: TEAL,
+    backgroundColor: "#0f172a",
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -670,8 +692,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   rejectBtn: {
-    borderWidth: 1.5,
-    borderColor: TEAL,
+    backgroundColor: "#fee2e2",
     width: 36,
     height: 36,
     borderRadius: 18,

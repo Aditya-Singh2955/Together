@@ -79,7 +79,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f8fafc",
   },
 
   container: {
@@ -111,8 +111,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontFamily: "Poppins_600SemiBold",
-    color: "#3f3333",
+    color: "#0f172a",
     marginTop: 20,
+    letterSpacing: -0.5,
   },
 
   ContentSection: {
@@ -122,37 +123,41 @@ const styles = StyleSheet.create({
   },
 
   input: {
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 14,
-    marginBottom: 15,
+    borderColor: "#e2e8f0",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 16,
     fontSize: 16,
     fontFamily: "Poppins_600SemiBold",
+    color: "#0f172a",
   },
 
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    marginBottom: 15,
+    borderColor: "#e2e8f0",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
 
   passwordInput: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 16,
     fontSize: 16,
     fontFamily: "Poppins_600SemiBold",
+    color: "#0f172a",
   },
 
   button: {
-    backgroundColor: "#36BFA6",
-    paddingVertical: 15,
-    borderRadius: 12,
+    backgroundColor: "#0f172a", // dark indigo
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: "center",
     marginTop: 10,
   },
@@ -160,30 +165,29 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "600",
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Poppins_700Bold",
   },
 
   forgotText: {
     textAlign: "center",
     marginTop: 15,
-    color: "#36BFA6",
+    color: "#0f172a",
     fontSize: 15,
     fontFamily: "Poppins_600SemiBold",
   },
   signupContainer: {
     alignItems: "center",
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
 
   signupText: {
-    fontSize: 15,
-    color: "#444",
+    fontSize: 14,
+    color: "#64748b",
     fontFamily: "Poppins_400Regular",
   },
 
   signupLink: {
-    color: "#36BFA6",
+    color: "#0f172a",
     fontFamily: "Poppins_600SemiBold",
   },
 });

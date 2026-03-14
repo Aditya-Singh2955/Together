@@ -147,7 +147,7 @@ const JoinGroupScreen = () => {
         </View>
 
         <View style={styles.hintBox}>
-          <Ionicons name="information-circle-outline" size={20} color={TEAL} style={{ marginRight: 8 }} />
+          <Ionicons name="information-circle-outline" size={22} color="#14b8a6" style={{ marginRight: 10 }} />
           <Text style={styles.hintText}>
             Ask the group admin to share their invite code with you.
           </Text>
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingVertical: 16,
   },
   backButton: { padding: 8 },
   scroll: { flex: 1 },
@@ -174,37 +174,40 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
   },
   logo: { width: 80, height: 80, marginBottom: 12 },
-  appName: { fontSize: 18, fontFamily: "Poppins_400Regular", color: "#4a4a4a", marginBottom: 8 },
-  screenTitle: { fontSize: 24, fontFamily: "Poppins_600SemiBold", color: "#333" },
-  joinSection: { marginBottom: 24 },
+  appName: { fontSize: 18, fontFamily: "Poppins_400Regular", color: "#475569", marginBottom: 8 },
+  screenTitle: { fontSize: 24, fontFamily: "Poppins_600SemiBold", color: "#0f172a", letterSpacing: -0.5 },
+  joinSection: { marginBottom: 32 },
   input: {
+    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
+    borderColor: "#e2e8f0",
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 20,
-    fontFamily: "Poppins_600SemiBold",
-    color: "#333",
-    marginBottom: 16,
+    paddingVertical: 18,
+    fontSize: 22,
+    fontFamily: "Poppins_700Bold",
+    color: "#0f172a",
+    marginBottom: 20,
     textAlign: "center",
-    letterSpacing: 6,
+    letterSpacing: 8,
   },
   joinButton: {
-    backgroundColor: TEAL,
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: "#0f172a", // dark indigo
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: "center",
   },
-  joinButtonText: { fontSize: 16, fontFamily: "Poppins_600SemiBold", color: "#fff" },
+  joinButtonText: { fontSize: 16, fontFamily: "Poppins_700Bold", color: "#fff" },
   hintBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e6faf7",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "#f8fafc",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
-  hintText: { flex: 1, fontSize: 13, fontFamily: "Poppins_400Regular", color: "#1a1a1a" },
+  hintText: { flex: 1, fontSize: 14, fontFamily: "Poppins_400Regular", color: "#64748b", lineHeight: 22 },
 });
 
 export default JoinGroupScreen;
