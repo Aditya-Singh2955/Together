@@ -40,6 +40,19 @@ export async function playOuchSound() {
   }
 }
 
+export async function playWowSound() {
+  try {
+    const { sound } = await Audio.Sound.createAsync(require("../../assets/wow.mp3"));
+    await sound.playAsync();
+    sound.setOnPlaybackStatusUpdate((status) => {
+      if (status.didJustFinish) {
+        sound.unloadAsync();
+      }
+    });
+  } catch (e) {
+  }
+}
+
 export const ToastSounds = {
   success: showSuccessToast,
   error: showErrorToast,

@@ -20,7 +20,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import { playOuchSound } from "../../utils/toastWithSound";
+import { playOuchSound, playWowSound } from "../../utils/toastWithSound";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -183,7 +183,7 @@ const HomeScreen = () => {
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.profileBtn} activeOpacity={0.7} onPress={() => navigation.navigate("Profile")}>
+          <TouchableOpacity style={styles.profileBtn} activeOpacity={0.7} onPress={() => { playWowSound(); navigation.navigate("Profile"); }}>
             <Ionicons name="person-circle-outline" size={36} color={TEAL} />
           </TouchableOpacity>
         </View>
