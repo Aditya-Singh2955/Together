@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { auth } from "../../../firbase";
 import {
   getFirestore,
@@ -64,6 +64,7 @@ const Avatar = ({ name }) => {
 };
 
 const ActivityScreen = () => {
+  const navigation = useNavigation();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -143,9 +144,9 @@ const ActivityScreen = () => {
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <View style={styles.profileBtn}>
+          <TouchableOpacity style={styles.profileBtn} activeOpacity={0.7} onPress={() => navigation.navigate("Profile")}>
             <Ionicons name="person-circle-outline" size={36} color={TEAL} />
-          </View>
+          </TouchableOpacity>
         </View>
 
         <ScrollView

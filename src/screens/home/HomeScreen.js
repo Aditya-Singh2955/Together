@@ -183,7 +183,7 @@ const HomeScreen = () => {
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.profileBtn} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.profileBtn} activeOpacity={0.7} onPress={() => navigation.navigate("Profile")}>
             <Ionicons name="person-circle-outline" size={36} color={TEAL} />
           </TouchableOpacity>
         </View>
