@@ -1,6 +1,35 @@
 export const isSettlement = (expense) =>
   !!expense?.isSettlement || expense?.title === "Settle Up";
 
+export const getPersonShare = (expense, uid) => {
+  const amt = parseFloat(expense.amount) || 0;
+  const splitAmong = expense.splitAmong || [];
+  if (!splitAmong.includes(uid)) return 0;
+
+  const type = expense.splitType || "equal";
+  const shares = expense.shares || {};
+
+  if (type === "amount") {
+    return parseFloat(shares[uid]) || 0;
+  }
+  if (type === "percent") {
+    return (amt * (parseFloat(shares[uid]) || 0)) / 100;
+  }
+  return amt / (splitAmong.length || 1);
+};
+
+export const getUserNetOnExpense = (expense, uid) => {
+  const amt = parseFloat(expense.amount) || 0;
+  const isPayer = expense.paidBy === uid;
+  const inSplit = (expense.splitAmong || []).includes(uid);
+  const share = getPersonShare(expense, uid);
+
+  if (isPayer && inSplit) return amt - share;
+  if (isPayer && !inSplit) return amt;
+  if (!isPayer && inSplit) return -share;
+  return 0;
+};
+
 export const computeMemberBalances = (members, expenses) => {
   const memberBalances = {};
   members.forEach((m) => {
@@ -11,15 +40,13 @@ export const computeMemberBalances = (members, expenses) => {
     const amt = parseFloat(exp.amount) || 0;
     const payerUid = exp.paidBy;
     const splitAmong = exp.splitAmong || [];
-    const splitCount = splitAmong.length || 1;
-    const costPerPerson = amt / splitCount;
 
     if (memberBalances[payerUid] !== undefined) {
       memberBalances[payerUid] += amt;
     }
     splitAmong.forEach((splitUid) => {
       if (memberBalances[splitUid] !== undefined) {
-        memberBalances[splitUid] -= costPerPerson;
+        memberBalances[splitUid] -= getPersonShare(exp, splitUid);
       }
     });
   });

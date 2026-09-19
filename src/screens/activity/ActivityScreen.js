@@ -21,6 +21,8 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { playOuchSound, playWowSound } from "../../utils/toastWithSound";
+import { formatExpenseDateTime } from "../../utils/date";
+import { getUserNetOnExpense } from "../../utils/balances";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -96,17 +98,7 @@ const ActivityScreen = () => {
               const isSplit = data.splitAmong?.includes(user.uid);
 
               if (isPayer || isSplit) {
-                const totalSplitPeople = data.splitAmong?.length || 1;
-                const costPerPerson = data.amount / totalSplitPeople;
-                let myNetTransaction = 0;
-
-                if (isPayer && isSplit) {
-                  myNetTransaction = data.amount - costPerPerson;
-                } else if (isPayer && !isSplit) {
-                  myNetTransaction = data.amount;
-                } else if (!isPayer && isSplit) {
-                  myNetTransaction = -costPerPerson;
-                }
+                const myNetTransaction = getUserNetOnExpense(data, user.uid);
 
                 allExpenses.push({
                   id: d.id,
@@ -169,9 +161,6 @@ const ActivityScreen = () => {
             <View style={styles.listCard}>
               {activities.map((item, index) => {
                 const isPositive = item.netAmount >= 0;
-                const dateObj = new Date(item.createdAt);
-                const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                
                 return (
                   <View
                     key={item.id}
@@ -182,8 +171,8 @@ const ActivityScreen = () => {
                        <Text style={styles.activityName} numberOfLines={1}>
                          {item.title}
                        </Text>
-                       <Text style={styles.activitySubtitle}>
-                         {item.paidByName} • {dateStr}
+                       <Text style={styles.activitySubtitle} numberOfLines={1}>
+                         {item.paidByName} • {formatExpenseDateTime(item.createdAt)}
                        </Text>
                     </View>
                     <View style={[styles.amountBadge, isPositive ? { backgroundColor: "#ccfbf1" } : { backgroundColor: "#fee2e2" }]}>

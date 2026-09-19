@@ -11,7 +11,7 @@ import {
   FlatList,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import { auth } from "../../../firbase";
@@ -30,6 +30,7 @@ import {
 import * as Clipboard from "expo-clipboard";
 import { showSuccessToast, showErrorToast } from "../../utils/toastWithSound";
 import { computeMemberBalances, isSettlement } from "../../utils/balances";
+import { formatExpenseDateTime } from "../../utils/date";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -79,6 +80,7 @@ const Avatar = ({ name }) => {
 const GroupDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const { groupId, groupName } = route.params;
 
   const [group, setGroup] = useState(null);
@@ -236,13 +238,16 @@ const GroupDetailScreen = () => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{groupName}</Text>
-          <View style={{ width: 40 }} />
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {groupName}
+          </Text>
+          <View style={styles.headerSpacer} />
         </View>
 
         {loading ? (
           <ActivityIndicator size="large" color={TEAL} style={{ marginTop: 60 }} />
         ) : (
+          <>
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
@@ -311,10 +316,13 @@ const GroupDetailScreen = () => {
                       styles.netBadge,
                       isSettled ? { backgroundColor: "#f3f4f6" } : getsBack ? { backgroundColor: "#ccfbf1" } : { backgroundColor: "#fee2e2" }
                     ]}>
-                      <Text style={[
-                        styles.netBadgeText,
-                        isSettled ? { color: "#64748b" } : getsBack ? { color: "#0f766e" } : { color: "#ef4444" }
-                      ]}>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.netBadgeText,
+                          isSettled ? { color: "#64748b" } : getsBack ? { color: "#0f766e" } : { color: "#ef4444" }
+                        ]}
+                      >
                         {isSettled ? "Settled" : getsBack ? `Gets ₹${Math.abs(bal).toFixed(2)}` : `Owes ₹${Math.abs(bal).toFixed(2)}`}
                       </Text>
                     </View>
@@ -333,26 +341,32 @@ const GroupDetailScreen = () => {
             ) : (
               <View style={styles.listCard}>
                 {regularExpenses.map((exp) => (
-                  <View key={exp.id} style={styles.itemCard}>
+                  <TouchableOpacity
+                    key={exp.id}
+                    style={styles.itemCard}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      navigation.navigate("ExpenseDetail", { groupId, members, expenseId: exp.id })
+                    }
+                  >
                     <View style={styles.expenseIcon}>
                       <Ionicons name="receipt-outline" size={20} color="#0f766e" />
                     </View>
                     <View style={styles.itemInfo}>
                       <Text style={styles.itemName}>{exp.title}</Text>
-                      <Text style={styles.itemMeta}>Paid by {exp.paidByName}</Text>
+                      <Text style={styles.itemMeta}>
+                        {exp.paidByName}
+                        {exp.category ? ` · ${exp.category}` : ""}
+                      </Text>
+                      {!!formatExpenseDateTime(exp.createdAt) && (
+                        <Text style={styles.itemMeta}>{formatExpenseDateTime(exp.createdAt)}</Text>
+                      )}
                     </View>
                     <View style={styles.settlementActions}>
                       <Text style={styles.expenseAmount}>₹{parseFloat(exp.amount).toFixed(2)}</Text>
-                      <TouchableOpacity
-                        onPress={() =>
-                          navigation.navigate("AddExpense", { groupId, members, expense: exp })
-                        }
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.editText}>Edit</Text>
-                      </TouchableOpacity>
+                      <Text style={styles.editText}>Details</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
@@ -379,6 +393,9 @@ const GroupDetailScreen = () => {
                         <Text style={styles.itemMeta}>
                           {exp.paidByName} paid {receiver?.name || "member"}
                         </Text>
+                        {!!formatExpenseDateTime(exp.createdAt) && (
+                          <Text style={styles.itemMeta}>{formatExpenseDateTime(exp.createdAt)}</Text>
+                        )}
                       </View>
                       <View style={styles.settlementActions}>
                         <Text style={styles.expenseAmount}>₹{parseFloat(exp.amount).toFixed(2)}</Text>
@@ -405,27 +422,25 @@ const GroupDetailScreen = () => {
                 })}
               </View>
             )}
-
-            {/* Action Buttons */}
-            <View style={styles.actionButtonsRow}>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.addExpenseBtn, buttonShadow]}
-                activeOpacity={0.85}
-                onPress={() => navigation.navigate("AddExpense", { groupId, members })}
-              >
-                <Ionicons name="add-circle-outline" size={20} color="#fff" style={{ marginRight: 6 }} />
-                <Text style={styles.actionBtnText}>Add Expense</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.settleBtn, buttonShadow]}
-                activeOpacity={0.85}
-                onPress={() => navigation.navigate("Settle", { groupId })}
-              >
-                <Text style={styles.settleBtnText}>💸 Settle Up</Text>
-              </TouchableOpacity>
-            </View>
           </ScrollView>
+          <View style={[styles.stickyBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.addExpenseBtn, buttonShadow]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate("AddExpense", { groupId, members })}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={styles.actionBtnText}>Add Expense</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.settleBtn, buttonShadow]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate("Settle", { groupId })}
+            >
+              <Text style={styles.settleBtnText}>💸 Settle Up</Text>
+            </TouchableOpacity>
+          </View>
+          </>
         )}
 
         {/* Add Member Modal */}
@@ -487,10 +502,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
-  backBtn: { padding: 8 },
-  headerTitle: { fontSize: 18, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY },
+  backBtn: { padding: 8, flexShrink: 0 },
+  headerSpacer: { width: 40, flexShrink: 0 },
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontFamily: "Poppins_600SemiBold",
+    color: TEXT_PRIMARY,
+    textAlign: "center",
+    marginHorizontal: 8,
+  },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24 },
 
   inviteCard: {
     backgroundColor: "#e6faf7",
@@ -605,16 +628,18 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   avatarText: { fontSize: 18, fontFamily: "Poppins_700Bold" },
-  itemInfo: { flex: 1, marginRight: 12 },
+  itemInfo: { flex: 1, minWidth: 0, marginRight: 12 },
   itemName: { fontSize: 16, fontFamily: "Poppins_700Bold", color: "#0f172a", letterSpacing: -0.2 },
   itemMeta: { fontSize: 13, fontFamily: "Poppins_400Regular", color: "#64748b", marginTop: 2 },
   
-  netBadge: { 
+  netBadge: {
+    maxWidth: "42%",
+    flexShrink: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
   },
-  netBadgeText: { fontSize: 14, fontFamily: "Poppins_700Bold", letterSpacing: 0.5 },
+  netBadgeText: { fontSize: 13, fontFamily: "Poppins_700Bold", letterSpacing: 0.3 },
 
   expenseIcon: {
     width: 48,
@@ -634,10 +659,14 @@ const styles = StyleSheet.create({
 
   emptyText: { fontSize: 15, fontFamily: "Poppins_400Regular", color: "#64748b", marginTop: 12 },
 
-  actionButtonsRow: {
+  stickyBar: {
     flexDirection: "row",
     gap: 12,
-    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: CARD_BG,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
   },
   actionBtn: {
     flex: 1,

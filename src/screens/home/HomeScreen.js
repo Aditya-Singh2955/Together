@@ -21,6 +21,8 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { playOuchSound, playWowSound } from "../../utils/toastWithSound";
+import { formatExpenseDateTime } from "../../utils/date";
+import { getUserNetOnExpense } from "../../utils/balances";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -67,16 +69,13 @@ const ActivityItem = ({ item }) => {
   const isPositive = item.netAmount >= 0;
   
   // Format dates cleanly
-  const dateObj = new Date(item.createdAt);
-  const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  
   return (
     <View style={styles.activityRow}>
       <Avatar name={item.paidByName} />
       <View style={styles.activityInfo}>
         <Text style={styles.activityName} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.activitySubtitle} numberOfLines={1}>
-          {item.paidByName} • {dateStr}
+          {item.paidByName} • {formatExpenseDateTime(item.createdAt)}
         </Text>
       </View>
       <View style={[styles.amountBadge, isPositive ? { backgroundColor: "#ccfbf1" } : { backgroundColor: "#ffe3e3" }]}>
@@ -124,26 +123,7 @@ const HomeScreen = () => {
               const isSplit = data.splitAmong?.includes(user.uid);
 
               if (isPayer || isSplit) {
-                // Determine user's share of this expense
-                const totalSplitPeople = data.splitAmong?.length || 1;
-                const costPerPerson = data.amount / totalSplitPeople;
-                
-                let myNetTransaction = 0;
-
-                if (isPayer && isSplit) {
-                  // I paid, but I'm also in the split. 
-                  // E.g., I paid $30 for 3 people (including me). I am owed $20.
-                  myNetTransaction = data.amount - costPerPerson;
-                } else if (isPayer && !isSplit) {
-                  // I paid, but I'm not in the split for some reason.
-                  // I am owed the full amount.
-                  myNetTransaction = data.amount;
-                } else if (!isPayer && isSplit) {
-                  // Someone else paid, and I'm in the split.
-                  // I owe my share.
-                  myNetTransaction = -costPerPerson;
-                }
-
+                const myNetTransaction = getUserNetOnExpense(data, user.uid);
                 netBalance += myNetTransaction;
 
                 allExpenses.push({
