@@ -21,9 +21,11 @@ import {
   getDocs,
   getDoc,
   doc,
-  addDoc
+  addDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { showSuccessToast, showErrorToast } from "../../utils/toastWithSound";
+import { computeMemberBalances, getSettleRelation } from "../../utils/balances";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -42,7 +44,8 @@ const SettleScreen = () => {
   const route = useRoute();
   
   // Params
-  const { groupId: preSelectedGroupId } = route.params || {};
+  const { groupId: preSelectedGroupId, settlement } = route.params || {};
+  const isEdit = !!settlement?.id;
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -50,6 +53,8 @@ const SettleScreen = () => {
   // Data
   const [groups, setGroups] = useState([]);
   const [members, setMembers] = useState([]);
+  const [allMembers, setAllMembers] = useState([]);
+  const [expenses, setExpenses] = useState([]);
 
   // Selections
   const [selectedGroupId, setSelectedGroupId] = useState(preSelectedGroupId || null);
@@ -80,19 +85,36 @@ const SettleScreen = () => {
             if (groupDoc.exists()) {
               const groupData = groupDoc.data();
               const memberUids = groupData.members || [];
-              
-              // Exclude self
-              const otherUids = memberUids.filter(uid => uid !== user.uid);
-              
-              if (otherUids.length > 0) {
+
+              if (memberUids.length > 0) {
                 const memberDocs = await Promise.all(
-                  otherUids.map(uid => getDoc(doc(db, "users", uid)))
+                  memberUids.map((uid) => getDoc(doc(db, "users", uid)))
                 );
-                setMembers(
-                  memberDocs.filter(d => d.exists()).map(d => ({ uid: d.id, ...d.data() }))
-                );
+                const loadedMembers = memberDocs
+                  .filter((d) => d.exists())
+                  .map((d) => ({ uid: d.id, ...d.data() }));
+                setAllMembers(loadedMembers);
+                setMembers(loadedMembers.filter((m) => m.uid !== user.uid));
               } else {
+                setAllMembers([]);
                 setMembers([]);
+              }
+
+              const expSnapshot = await getDocs(
+                collection(db, "groups", selectedGroupId, "expenses")
+              );
+              setExpenses(expSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+
+              if (isEdit) {
+                setSelectedMemberId(settlement.splitAmong?.[0] || null);
+                setAmount(
+                  settlement.amount != null ? String(settlement.amount) : ""
+                );
+                setTitle(
+                  !settlement.title || settlement.title === "Settle Up"
+                    ? ""
+                    : settlement.title
+                );
               }
             }
           }
@@ -104,8 +126,29 @@ const SettleScreen = () => {
       };
 
       loadInitialData();
-    }, [selectedGroupId])
+    }, [selectedGroupId, isEdit, settlement])
   );
+
+  const myUid = auth.currentUser?.uid;
+  const balances = computeMemberBalances(
+    allMembers,
+    isEdit ? expenses.filter((e) => e.id !== settlement.id) : expenses
+  );
+  const selectedMember = members.find((m) => m.uid === selectedMemberId);
+  const selectedRelation = selectedMemberId
+    ? getSettleRelation(myUid, selectedMemberId, balances)
+    : null;
+  const parsedAmount = parseFloat(amount);
+
+  const selectMember = (uid) => {
+    setSelectedMemberId(uid);
+    const relation = getSettleRelation(myUid, uid, balances);
+    if (relation.type === "you_owe") {
+      setAmount(relation.amount.toFixed(2));
+    } else {
+      setAmount("");
+    }
+  };
 
   const handleSettle = async () => {
     if (!selectedGroupId) { showErrorToast("Select a group."); return; }
@@ -121,17 +164,28 @@ const SettleScreen = () => {
       const meDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
       const myName = meDoc.exists() ? meDoc.data().name : "Unknown";
 
-      // Create settlement expense
-      await addDoc(collection(db, "groups", selectedGroupId, "expenses"), {
+      const payload = {
         title: title.trim() || "Settle Up",
         isSettlement: true,
         amount: amt,
         paidBy: auth.currentUser.uid,
         paidByName: myName,
-        splitAmong: [selectedMemberId], // The receiver is the only one who owes it back, cancelling their debt
-        createdAt: new Date().toISOString(),
-      });
-      showSuccessToast("Settled up!");
+        splitAmong: [selectedMemberId],
+      };
+
+      if (isEdit) {
+        await updateDoc(
+          doc(db, "groups", selectedGroupId, "expenses", settlement.id),
+          { ...payload, updatedAt: new Date().toISOString() }
+        );
+        showSuccessToast("Settlement updated");
+      } else {
+        await addDoc(collection(db, "groups", selectedGroupId, "expenses"), {
+          ...payload,
+          createdAt: new Date().toISOString(),
+        });
+        showSuccessToast("Settled up!");
+      }
       
       // Go back to where we came from
       if (navigation.canGoBack()) {
@@ -154,7 +208,7 @@ const SettleScreen = () => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settle Up</Text>
+          <Text style={styles.headerTitle}>{isEdit ? "Edit Settlement" : "Settle Up"}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -196,21 +250,39 @@ const SettleScreen = () => {
                     {members.length === 0 ? (
                       <Text style={styles.emptyText}>No other members in this group to settle with.</Text>
                     ) : (
-                      members.map((m, index) => (
+                      members.map((m, index) => {
+                        const relation = getSettleRelation(myUid, m.uid, balances);
+                        return (
                         <TouchableOpacity
                           key={m.uid}
                           style={[styles.row, index === members.length - 1 && styles.rowLast]}
-                          onPress={() => setSelectedMemberId(m.uid)}
+                          onPress={() => selectMember(m.uid)}
                         >
                           <View style={styles.avatar}>
                             <Text style={styles.avatarText}>{m.name?.charAt(0).toUpperCase()}</Text>
                           </View>
-                          <Text style={styles.rowText}>{m.name}</Text>
+                          <View style={styles.rowInfo}>
+                            <Text style={styles.rowText}>{m.name}</Text>
+                            <Text
+                              style={[
+                                styles.rowHint,
+                                relation.type === "you_owe" && styles.hintOwe,
+                                relation.type === "owes_you" && styles.hintGet,
+                              ]}
+                            >
+                              {relation.type === "you_owe"
+                                ? `You owe ₹${relation.amount.toFixed(2)}`
+                                : relation.type === "owes_you"
+                                ? `Owes you ₹${relation.amount.toFixed(2)}`
+                                : "All settled"}
+                            </Text>
+                          </View>
                           <View style={[styles.radio, selectedMemberId === m.uid && styles.radioSelected]}>
                             {selectedMemberId === m.uid && <View style={styles.radioDot} />}
                           </View>
                         </TouchableOpacity>
-                      ))
+                        );
+                      })
                     )}
                   </View>
 
@@ -241,8 +313,27 @@ const SettleScreen = () => {
                             editable={!submitting} 
                             autoFocus
                           />
+                          {selectedRelation?.type === "you_owe" && (
+                            <Text style={styles.suggestText}>
+                              Suggested: ₹{selectedRelation.amount.toFixed(2)}
+                            </Text>
+                          )}
+                          {selectedRelation?.type === "owes_you" && (
+                            <Text style={styles.warnText}>
+                              {selectedMember?.name} owes you ₹{selectedRelation.amount.toFixed(2)}. They should settle with you.
+                            </Text>
+                          )}
                         </View>
                       </View>
+
+                      {selectedMember && !isNaN(parsedAmount) && parsedAmount > 0 && (
+                        <View style={styles.confirmBox}>
+                          <Ionicons name="swap-horizontal-outline" size={20} color="#0f766e" />
+                          <Text style={styles.confirmText}>
+                            You are paying {selectedMember.name} ₹{parsedAmount.toFixed(2)}
+                          </Text>
+                        </View>
+                      )}
 
                       <TouchableOpacity
                         style={[styles.primaryBtn, cardShadow, submitting && { opacity: 0.7 }]}
@@ -253,7 +344,9 @@ const SettleScreen = () => {
                         {submitting ? <ActivityIndicator color="#fff" /> : (
                           <>
                             <Ionicons name="checkmark-circle-outline" size={22} color="#fff" style={{ marginRight: 8 }} />
-                            <Text style={styles.primaryBtnText}>Confirm Settlement</Text>
+                            <Text style={styles.primaryBtnText}>
+                              {isEdit ? "Save Changes" : "Confirm Settlement"}
+                            </Text>
                           </>
                         )}
                       </TouchableOpacity>
@@ -286,7 +379,25 @@ const styles = StyleSheet.create({
   card: { backgroundColor: CARD_BG, borderRadius: 24, padding: 16, marginBottom: 32, borderWidth: 1, borderColor: "#e2e8f0" },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
   rowLast: { borderBottomWidth: 0 },
-  rowText: { flex: 1, fontSize: 15, fontFamily: "Poppins_400Regular", color: TEXT_PRIMARY },
+  rowInfo: { flex: 1, marginRight: 10 },
+  rowText: { fontSize: 15, fontFamily: "Poppins_400Regular", color: TEXT_PRIMARY },
+  rowHint: { fontSize: 12, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY, marginTop: 2 },
+  hintOwe: { color: "#ef4444", fontFamily: "Poppins_600SemiBold" },
+  hintGet: { color: "#0f766e", fontFamily: "Poppins_600SemiBold" },
+  suggestText: { fontSize: 12, fontFamily: "Poppins_400Regular", color: "#0f766e", marginTop: 8 },
+  warnText: { fontSize: 12, fontFamily: "Poppins_400Regular", color: "#b45309", marginTop: 8 },
+  confirmBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#ccfbf1",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#99f6e4",
+  },
+  confirmText: { flex: 1, fontSize: 14, fontFamily: "Poppins_600SemiBold", color: "#0f766e" },
   emptyText: { fontSize: 14, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY, textAlign: "center", paddingVertical: 10 },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: TEAL_LIGHT, alignItems: "center", justifyContent: "center", marginRight: 12 },
   avatarText: { fontSize: 14, fontFamily: "Poppins_600SemiBold", color: "#fff" },

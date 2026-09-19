@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Keyboard,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Logo from "../../../assets/Landing.png";
@@ -21,6 +22,7 @@ import { showSuccessToast, showErrorToast } from "../../utils/toastWithSound";
 
 const SignupScreen = () => {
   const navigation = useNavigation();
+  const scrollRef = useRef(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,6 +30,8 @@ const SignupScreen = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const shouldRevealPassword = useRef(false);
 
   const handleSignUp = async () => {
     const trimmedName = name.trim();
@@ -83,13 +87,47 @@ const SignupScreen = () => {
     }
   };
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (event) => {
+      setKeyboardOffset(event.endCoordinates.height);
+      if (shouldRevealPassword.current) {
+        setTimeout(() => {
+          scrollRef.current?.scrollToEnd({ animated: true });
+        }, 50);
+      }
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardOffset(0);
+      shouldRevealPassword.current = false;
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const revealPasswordField = () => {
+    shouldRevealPassword.current = true;
+    if (keyboardOffset > 0) {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(24, keyboardOffset + 24) },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <View style={styles.LogoSection}>
           <Image source={Logo} style={styles.logo} />
@@ -130,6 +168,7 @@ const SignupScreen = () => {
                 onChangeText={setPassword}
                 secureTextEntry={!passwordVisible}
                 editable={!loading}
+                onFocus={revealPasswordField}
               />
               <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
                 <Ionicons name={passwordVisible ? "eye-off" : "eye"} size={22} color="#777" />
@@ -144,6 +183,7 @@ const SignupScreen = () => {
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!confirmVisible}
                 editable={!loading}
+                onFocus={revealPasswordField}
               />
               <TouchableOpacity onPress={() => setConfirmVisible(!confirmVisible)}>
                 <Ionicons name={confirmVisible ? "eye-off" : "eye"} size={22} color="#777" />
@@ -179,7 +219,7 @@ const SignupScreen = () => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#f8fafc" },
   scroll: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: 24 },
+  scrollContent: { flexGrow: 1 },
   LogoSection: { alignItems: "center", paddingTop: 16 },
   logo: { width: 200, height: 200, resizeMode: "contain" },
   LoginSection: { paddingHorizontal: 35, paddingTop: 8 },

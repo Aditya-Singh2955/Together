@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { auth } from "../../../firbase";
-import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { showSuccessToast, showErrorToast, playOuchSound } from "../../utils/toastWithSound";
 
 const TEAL = "#0f172a";
@@ -32,12 +32,19 @@ const cardShadow = Platform.select({
 const AddExpenseScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { groupId, members } = route.params;
+  const { groupId, members, expense } = route.params;
+  const isEdit = !!expense?.id;
 
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [paidByUid, setPaidByUid] = useState(auth.currentUser?.uid || "");
-  const [splitAmong, setSplitAmong] = useState(members.map((m) => m.uid));
+  const [title, setTitle] = useState(expense?.title || "");
+  const [amount, setAmount] = useState(
+    expense?.amount != null ? String(expense.amount) : ""
+  );
+  const [paidByUid, setPaidByUid] = useState(
+    expense?.paidBy || auth.currentUser?.uid || ""
+  );
+  const [splitAmong, setSplitAmong] = useState(
+    expense?.splitAmong || members.map((m) => m.uid)
+  );
   const [loading, setLoading] = useState(false);
 
   const toggleSplit = (uid) => {
@@ -56,15 +63,27 @@ const AddExpenseScreen = () => {
     try {
       const db = getFirestore();
       const payer = members.find((m) => m.uid === paidByUid);
-      await addDoc(collection(db, "groups", groupId, "expenses"), {
+      const payload = {
         title: title.trim(),
         amount: amt,
         paidBy: paidByUid,
         paidByName: payer?.name || "Unknown",
         splitAmong,
-        createdAt: new Date().toISOString(),
-      });
-      showSuccessToast("Expense added!");
+      };
+
+      if (isEdit) {
+        await updateDoc(doc(db, "groups", groupId, "expenses", expense.id), {
+          ...payload,
+          updatedAt: new Date().toISOString(),
+        });
+        showSuccessToast("Expense updated");
+      } else {
+        await addDoc(collection(db, "groups", groupId, "expenses"), {
+          ...payload,
+          createdAt: new Date().toISOString(),
+        });
+        showSuccessToast("Expense added!");
+      }
       navigation.goBack();
     } catch (err) {
       showErrorToast("Failed to save expense.");
@@ -155,7 +174,7 @@ const AddExpenseScreen = () => {
             {loading ? <ActivityIndicator color="#fff" /> : (
               <>
                 <Ionicons name="checkmark-circle-outline" size={22} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={styles.saveBtnText}>Save Expense</Text>
+                <Text style={styles.saveBtnText}>{isEdit ? "Save Changes" : "Save Expense"}</Text>
               </>
             )}
           </TouchableOpacity>

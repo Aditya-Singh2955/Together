@@ -103,7 +103,7 @@ const GroupsScreen = () => {
           {loading ? (
             <ActivityIndicator size="large" color="#14b8a6" style={{ marginTop: 32 }} />
           ) : groups.length === 0 ? (
-            <View style={[styles.groupCard, { padding: 40, alignItems: "center" }]}>
+            <View style={styles.emptyCard}>
               <Ionicons name="people-outline" size={56} color="#e2e8f0" />
               <Text style={styles.emptyText}>No groups yet.</Text>
               <Text style={styles.emptySubText}>Create one or join with an invite code!</Text>
@@ -184,12 +184,38 @@ const styles = StyleSheet.create({
     color: "#64748b",
     letterSpacing: 1.5,
   },
-  emptyState: { alignItems: "center", marginTop: 40 },
-  emptyText: { fontSize: 17, fontFamily: "Poppins_600SemiBold", color: TEXT_PRIMARY, marginTop: 16 },
-  emptySubText: { fontSize: 13, fontFamily: "Poppins_400Regular", color: "#64748b", marginTop: 6, textAlign: "center" },
+  emptyCard: {
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingVertical: 36,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    marginBottom: 24,
+    width: "100%",
+    ...cardShadow,
+  },
+  emptyText: {
+    fontSize: 17,
+    fontFamily: "Poppins_600SemiBold",
+    color: TEXT_PRIMARY,
+    marginTop: 16,
+    textAlign: "center",
+  },
+  emptySubText: {
+    fontSize: 13,
+    fontFamily: "Poppins_400Regular",
+    color: "#64748b",
+    marginTop: 6,
+    textAlign: "center",
+    width: "100%",
+    flexShrink: 1,
+  },
   listCard: {
     gap: 12,
     marginBottom: 24,
+    width: "100%",
   },
   groupCard: {
     flexDirection: "row",
@@ -200,9 +226,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#e2e8f0",
+    width: "100%",
+    overflow: "hidden",
     ...cardShadow,
   },
-  rowInfo: { flex: 1, marginRight: 10 },
+  rowInfo: { flex: 1, minWidth: 0, marginRight: 10 },
   rowLabel: { fontSize: 18, fontFamily: "Poppins_700Bold", color: "#0f172a", letterSpacing: -0.2 },
   rowSub: { fontSize: 13, fontFamily: "Poppins_400Regular", color: "#64748b", marginTop: 2 },
   iconCircle: {

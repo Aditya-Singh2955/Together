@@ -121,17 +121,22 @@ const JoinGroupScreen = () => {
         </View>
 
         <View style={styles.joinSection}>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter 6-character Invite Code"
-            placeholderTextColor="#999"
-            value={inviteCode}
-            onChangeText={setInviteCode}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            maxLength={6}
-            editable={!loading}
-          />
+          <View style={styles.inputWrap}>
+            {inviteCode.length === 0 && (
+              <Text style={styles.placeholderOverlay} pointerEvents="none">
+                Enter 6-character invite code
+              </Text>
+            )}
+            <TextInput
+              style={[styles.input, inviteCode.length === 0 && styles.inputEmpty]}
+              value={inviteCode}
+              onChangeText={setInviteCode}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={6}
+              editable={!loading}
+            />
+          </View>
           <TouchableOpacity
             style={[styles.joinButton, loading && { opacity: 0.7 }]}
             onPress={handleJoin}
@@ -177,6 +182,21 @@ const styles = StyleSheet.create({
   appName: { fontSize: 18, fontFamily: "Poppins_400Regular", color: "#475569", marginBottom: 8 },
   screenTitle: { fontSize: 24, fontFamily: "Poppins_600SemiBold", color: "#0f172a", letterSpacing: -0.5 },
   joinSection: { marginBottom: 32 },
+  inputWrap: {
+    position: "relative",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  placeholderOverlay: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    textAlign: "center",
+    fontSize: 15,
+    fontFamily: "Poppins_400Regular",
+    color: "#94a3b8",
+    zIndex: 1,
+  },
   input: {
     backgroundColor: "#f8fafc",
     borderWidth: 1,
@@ -187,9 +207,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: "Poppins_700Bold",
     color: "#0f172a",
-    marginBottom: 20,
     textAlign: "center",
     letterSpacing: 8,
+    includeFontPadding: false,
+  },
+  inputEmpty: {
+    letterSpacing: 0,
   },
   joinButton: {
     backgroundColor: "#0f172a", // dark indigo

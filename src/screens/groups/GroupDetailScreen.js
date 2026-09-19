@@ -25,8 +25,11 @@ import {
   arrayUnion,
   orderBy,
   query,
+  deleteDoc,
 } from "firebase/firestore";
+import * as Clipboard from "expo-clipboard";
 import { showSuccessToast, showErrorToast } from "../../utils/toastWithSound";
+import { computeMemberBalances, isSettlement } from "../../utils/balances";
 
 const TEAL = "#1a9f8f";
 const TEAL_LIGHT = "#2bb7a8";
@@ -90,6 +93,23 @@ const GroupDetailScreen = () => {
 
   const currentUser = auth.currentUser;
   const db = getFirestore();
+  const [copied, setCopied] = useState(false);
+
+  const copyInviteCode = async () => {
+    const code = group?.inviteCode;
+    if (!code) {
+      showErrorToast("Invite code not available.");
+      return;
+    }
+    try {
+      await Clipboard.setStringAsync(code);
+      setCopied(true);
+      showSuccessToast("Invite code copied");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showErrorToast("Could not copy code.");
+    }
+  };
 
   const loadGroupData = useCallback(async () => {
     setLoading(true);
@@ -170,41 +190,43 @@ const GroupDetailScreen = () => {
     }
   };
 
+  const regularExpenses = expenses.filter((e) => !isSettlement(e));
+  const settlements = expenses.filter((e) => isSettlement(e));
+
   // 1. Group Total: Sum ALL expenses EXCEPT settlements
-  const totalExpenses = expenses
-    .filter((e) => !e.isSettlement && e.title !== "Settle Up")
-    .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  const totalExpenses = regularExpenses.reduce(
+    (sum, e) => sum + (parseFloat(e.amount) || 0),
+    0
+  );
 
   // 2. Individual Member Balances
   // Positive = Owed money back
   // Negative = Owes someone else
-  const memberBalances = {};
-  
-  // Initialize balances to 0
-  members.forEach(m => {
-    memberBalances[m.uid] = 0;
-  });
+  const memberBalances = computeMemberBalances(members, expenses);
 
-  // Calculate debts based on every expense
-  expenses.forEach(exp => {
-    const amt = parseFloat(exp.amount) || 0;
-    const payerUid = exp.paidBy;
-    const splitAmong = exp.splitAmong || [];
-    const splitCount = splitAmong.length || 1;
-    const costPerPerson = amt / splitCount;
-
-    // The person who paid getting credited the FULL amount to their balance:
-    if (memberBalances[payerUid] !== undefined) {
-      memberBalances[payerUid] += amt;
-    }
-
-    // Every person in the split having their share subtracted from their balance:
-    splitAmong.forEach(splitUid => {
-      if (memberBalances[splitUid] !== undefined) {
-        memberBalances[splitUid] -= costPerPerson;
-      }
-    });
-  });
+  const undoSettlement = (exp) => {
+    Alert.alert(
+      "Undo settlement?",
+      "This will remove this payment from the group balance.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Undo",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "groups", groupId, "expenses", exp.id));
+              showSuccessToast("Settlement undone");
+              loadGroupData();
+            } catch (err) {
+              showErrorToast("Could not undo settlement.");
+              console.error(err);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -231,6 +253,18 @@ const GroupDetailScreen = () => {
               <Ionicons name="link-outline" size={20} color={TEAL} />
               <Text style={styles.inviteLabel}>Invite Code</Text>
               <Text style={styles.inviteCode}>{group?.inviteCode}</Text>
+              <TouchableOpacity
+                style={styles.copyBtn}
+                onPress={copyInviteCode}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={copied ? "checkmark-circle-outline" : "copy-outline"}
+                  size={18}
+                  color="#0f766e"
+                />
+                <Text style={styles.copyBtnText}>{copied ? "Copied" : "Copy Code"}</Text>
+              </TouchableOpacity>
               <Text style={styles.inviteHint}>Share this to invite others</Text>
             </View>
 
@@ -291,14 +325,14 @@ const GroupDetailScreen = () => {
 
             {/* Expenses */}
             <Text style={[styles.sectionTitle, { marginTop: 16 }]}>EXPENSES</Text>
-            {expenses.length === 0 ? (
+            {regularExpenses.length === 0 ? (
               <View style={[styles.itemCard, { paddingVertical: 40, justifyContent: "center", alignItems: "center", flexDirection: "column" }]}>
                 <Ionicons name="receipt-outline" size={48} color="#e2e8f0" />
                 <Text style={styles.emptyText}>No expenses yet</Text>
               </View>
             ) : (
               <View style={styles.listCard}>
-                {expenses.map((exp, index) => (
+                {regularExpenses.map((exp) => (
                   <View key={exp.id} style={styles.itemCard}>
                     <View style={styles.expenseIcon}>
                       <Ionicons name="receipt-outline" size={20} color="#0f766e" />
@@ -307,9 +341,68 @@ const GroupDetailScreen = () => {
                       <Text style={styles.itemName}>{exp.title}</Text>
                       <Text style={styles.itemMeta}>Paid by {exp.paidByName}</Text>
                     </View>
-                    <Text style={styles.expenseAmount}>₹{parseFloat(exp.amount).toFixed(2)}</Text>
+                    <View style={styles.settlementActions}>
+                      <Text style={styles.expenseAmount}>₹{parseFloat(exp.amount).toFixed(2)}</Text>
+                      <TouchableOpacity
+                        onPress={() =>
+                          navigation.navigate("AddExpense", { groupId, members, expense: exp })
+                        }
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.editText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 ))}
+              </View>
+            )}
+
+            <Text style={[styles.sectionTitle, { marginTop: 8 }]}>SETTLEMENTS</Text>
+            {settlements.length === 0 ? (
+              <View style={[styles.itemCard, { paddingVertical: 28, justifyContent: "center", alignItems: "center", flexDirection: "column" }]}>
+                <Ionicons name="cash-outline" size={40} color="#e2e8f0" />
+                <Text style={styles.emptyText}>No settlements yet</Text>
+              </View>
+            ) : (
+              <View style={styles.listCard}>
+                {settlements.map((exp) => {
+                  const receiverUid = exp.splitAmong?.[0];
+                  const receiver = members.find((m) => m.uid === receiverUid);
+                  const canUndo = exp.paidBy === currentUser?.uid;
+                  return (
+                    <View key={exp.id} style={styles.itemCard}>
+                      <View style={[styles.expenseIcon, styles.settlementIcon]}>
+                        <Ionicons name="cash-outline" size={20} color="#0f766e" />
+                      </View>
+                      <View style={styles.itemInfo}>
+                        <Text style={styles.itemName}>{exp.title || "Settle Up"}</Text>
+                        <Text style={styles.itemMeta}>
+                          {exp.paidByName} paid {receiver?.name || "member"}
+                        </Text>
+                      </View>
+                      <View style={styles.settlementActions}>
+                        <Text style={styles.expenseAmount}>₹{parseFloat(exp.amount).toFixed(2)}</Text>
+                        <View style={styles.actionLinks}>
+                          {canUndo && (
+                            <TouchableOpacity
+                              onPress={() =>
+                                navigation.navigate("Settle", { groupId, settlement: exp })
+                              }
+                              activeOpacity={0.7}
+                            >
+                              <Text style={styles.editText}>Edit</Text>
+                            </TouchableOpacity>
+                          )}
+                          {canUndo && (
+                            <TouchableOpacity onPress={() => undoSettlement(exp)} activeOpacity={0.7}>
+                              <Text style={styles.undoText}>Undo</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             )}
 
@@ -409,6 +502,20 @@ const styles = StyleSheet.create({
   },
   inviteLabel: { fontSize: 13, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY },
   inviteCode: { fontSize: 28, fontFamily: "Poppins_700Bold", color: TEAL, letterSpacing: 8 },
+  copyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ccfbf1",
+    borderWidth: 1,
+    borderColor: "#99f6e4",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginTop: 8,
+    gap: 6,
+  },
+  copyBtnText: { fontSize: 13, fontFamily: "Poppins_600SemiBold", color: "#0f766e" },
   inviteHint: { fontSize: 12, fontFamily: "Poppins_400Regular", color: TEXT_SECONDARY },
 
   splitCard: {
@@ -519,12 +626,18 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   expenseAmount: { fontSize: 18, fontFamily: "Poppins_700Bold", color: "#0f172a", letterSpacing: -0.5 },
+  settlementIcon: { backgroundColor: "#e0f2fe" },
+  settlementActions: { alignItems: "flex-end" },
+  actionLinks: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 },
+  editText: { fontSize: 12, fontFamily: "Poppins_600SemiBold", color: "#0f766e" },
+  undoText: { fontSize: 12, fontFamily: "Poppins_600SemiBold", color: "#ef4444" },
 
   emptyText: { fontSize: 15, fontFamily: "Poppins_400Regular", color: "#64748b", marginTop: 12 },
 
   actionButtonsRow: {
     flexDirection: "row",
     gap: 12,
+    paddingTop: 24,
   },
   actionBtn: {
     flex: 1,
